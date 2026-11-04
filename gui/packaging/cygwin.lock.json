@@ -58,7 +58,6 @@
     "python312-jaraco_context",
     "python312-jaraco_functools",
     "python312-jaraco_text",
-    "python312-lxml",
     "python312-more-itertools",
     "python312-packaging",
     "python312-platformdirs",
@@ -217,7 +216,6 @@
     "python312-jaraco_functools",
     "python312-jaraco_text",
     "python312-jinja2",
-    "python312-lxml",
     "python312-markupsafe",
     "python312-more-itertools",
     "python312-olefile",
@@ -2034,19 +2032,6 @@
         "path": "noarch/release/python-jinja2/python-jinja2-3.1.6-1-src.tar.xz",
         "size": 246464,
         "sha512": "5176bc6fe4bad97be5a690ed0e1e63172d86aea30b3689e4610545bee16c8c565d256f5bf6e7f79e19c14887638c8dfb60c9bb61617c707fe2dad5543f8b5c9c"
-      }
-    },
-    "python312-lxml": {
-      "version": "6.1.3-2",
-      "install": {
-        "path": "x86_64/release/python-lxml/python312-lxml/python312-lxml-6.1.3-2-x86_64.tar.xz",
-        "size": 1457720,
-        "sha512": "829392eec97c7666224d70f69bd5d53b34c816e6d0af2697e067e60d1a7ab525ec44939e3f83192eeac6b67fe5e4284df34c69e249dfbd9967f53eb723220a21"
-      },
-      "source": {
-        "path": "src/release/python-lxml/python-lxml-6.1.3-2-src.tar.xz",
-        "size": 4210804,
-        "sha512": "3dd010de3e528d434f09d45ed9412a4d67313c3885e6017cbdf18c8abdd0638dd4426b564ca379d9fce8db3a643f9a9cb39e4a68b21b1346ed1922f91f08231c"
       }
     },
     "python312-markupsafe": {

@@ -12,7 +12,8 @@ QString bundled_tool (const QString &relative)
 
 QString bundled_interpreter (const QString &suffix, const QString &tool)
 {
-  if (QFileInfo (tool).fileName ().compare ("pdf2john.py", Qt::CaseInsensitive) == 0) return bundled_tool ("python/python.exe");
+  const QString name = QFileInfo (tool).fileName ().toLower ();
+  if (name == "pdf2john.py" || name == "krb2john.py") return bundled_tool ("python/python.exe");
   if (suffix == "py") return bundled_tool ("cygwin/bin/python3.12.exe");
   if (suffix == "pl") return bundled_tool ("cygwin/bin/perl.exe");
   return {};

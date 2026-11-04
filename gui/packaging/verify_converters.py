@@ -41,8 +41,8 @@ def main():
 
     python, perl = runtime / "python3.12.exe", runtime / "perl.exe"
     pdf_python = root / "tools/python/python.exe"
-    run([pdf_python, "-X", "utf8", "-c", "import pyhanko.pdf_utils.reader, cryptography; print(cryptography.__version__)"])
-    for module in ("ssl", "sqlite3", "lxml.etree", "olefile", "Crypto.Cipher.AES", "Crypto.Cipher.DES3",
+    run([pdf_python, "-X", "utf8", "-c", "import pyhanko.pdf_utils.reader, cryptography, lxml.etree; print(cryptography.__version__)"])
+    for module in ("ssl", "sqlite3", "olefile", "Crypto.Cipher.AES", "Crypto.Cipher.DES3",
                    "pyasn1.codec.ber.decoder", "asn1crypto", "scapy.all", "protobuf.wallet_pb2",
                    "berkeleydb.db", "plyvel", "google.protobuf", "simplejson"):
         print("Checking Python module:", module, flush=True)
@@ -64,7 +64,7 @@ def main():
             continue
         command = [tool]
         if tool.suffix in (".py", ".pl"):
-            command = ([pdf_python, "-X", "utf8"] if key == "pdf" else [python if tool.suffix == ".py" else perl]) + command
+            command = ([pdf_python, "-X", "utf8"] if key in ("pdf", "krb") else [python if tool.suffix == ".py" else perl]) + command
         run(command, success=False)
         resolved[key] = tool.name
     if failures:

@@ -56,10 +56,10 @@ The build scripts are included in `HashcatDesktop-source.tar.gz`.
 
 John's bitcoin2john import is patched to use the maintained `berkeleydb.db` binding
 with the same API in place of `bsddb3.db`. Protobuf 7.36.2 uses its Python implementation for compatibility with the
-upstream wallet schema. PDF extraction uses embedded CPython 3.14.9 with current
-pyHanko and cryptography Windows wheels. Other Python converters use the Cygwin
+upstream wallet schema. PDF and Kerberos XML extraction use embedded CPython 3.14.9
+with current pyHanko, cryptography and lxml Windows wheels. Other Python converters use the Cygwin
 interpreter, including the Berkeley DB and LevelDB extensions. The older Cygwin
-cryptography package is not distributed. Unix manual pages are omitted and runtime symlinks are
+cryptography and ABI-incompatible lxml packages are not distributed. Unix manual pages are omitted and runtime symlinks are
 materialized as regular files for Windows Explorer extraction. No system Cygwin,
 WSL, Python or Perl installation is needed. Linux uses user-installed converters.
 The RADIUS catalog entry selects John's newer Python/Scapy extractor instead of
