@@ -9,6 +9,7 @@ import shutil
 import tarfile
 import time
 import urllib.request
+import zipfile
 
 HERE = Path(__file__).resolve().parent
 
@@ -109,9 +110,12 @@ def main():
     downloads += [(item, lock["mirror"], "sha512") for item in sources.values()]
     upstream = json.loads((HERE / "sources.lock.json").read_text())
     python = json.loads((HERE / "python.lock.json").read_text())
+    native = json.loads((HERE / "native-python.lock.json").read_text())
     downloads += [(item, "", "sha256") for item in upstream.values()]
     downloads += [(item, "", "sha256") for item in python.values()]
     downloads += [(item["source"], "", "sha256") for item in python.values() if item["source"]]
+    downloads += [(item, "", "sha256") for item in native.values()]
+    downloads += [(item["source"], "", "sha256") for item in native.values() if item["source"]]
     # Avoid two workers downloading the same source archive.
     unique = {item.get("filename", item.get("path")): (item, base, algorithm)
               for item, base, algorithm in downloads}
@@ -148,7 +152,15 @@ def main():
         shutil.copy2(cache / item["filename"], wheelhouse)
         if item["source"]:
             shutil.copy2(cache / item["source"]["filename"], source_dir)
-    for name in ("cygwin.lock.json", "python.lock.json", "sources.lock.json"):
+    native_root = output / "tools" / "python"
+    for name, item in native.items():
+        destination = native_root if name == "python-runtime" else native_root / "Lib" / "site-packages"
+        with zipfile.ZipFile(cache / item["filename"]) as archive:
+            archive.extractall(destination)
+        if item["source"]:
+            shutil.copy2(cache / item["source"]["filename"], source_dir)
+    (native_root / "python314._pth").write_text("python314.zip\n.\nLib/site-packages\nimport site\n")
+    for name in ("cygwin.lock.json", "python.lock.json", "native-python.lock.json", "sources.lock.json"):
         shutil.copy2(HERE / name, output / "licenses")
     print("Build and portable runtime trees prepared.", flush=True)
 

@@ -17,7 +17,8 @@ def main():
     for name in ("PYTHONHOME", "PYTHONPATH", "PERL5LIB", "OPENSSL_CONF", "OPENSSL_MODULES"):
         env.pop(name, None)
     env.update(PATH=os.pathsep.join([str(runtime), str(john), env["SystemRoot"] + "\\System32"]),
-               LC_ALL="C.UTF-8", PYTHONUTF8="1", PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1")
+               LC_ALL="C.UTF-8", PYTHONUTF8="1", PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1",
+               PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="python")
 
     def run(command, success=True):
         result = subprocess.run([str(arg) for arg in command], env=env, cwd=john,
@@ -31,8 +32,10 @@ def main():
         return output
 
     python, perl = runtime / "python3.12.exe", runtime / "perl.exe"
+    pdf_python = root / "tools/python/python.exe"
+    run([pdf_python, "-X", "utf8", "-c", "import pyhanko.pdf_utils.reader, cryptography; print(cryptography.__version__)"])
     run([python, "-c", "import ssl, sqlite3, lxml.etree, olefile, Crypto.Cipher.AES, Crypto.Cipher.DES3, "
-         "pyasn1.codec.ber.decoder, pyhanko.pdf_utils.reader, asn1crypto, scapy.all, "
+         "pyasn1.codec.ber.decoder, asn1crypto, scapy.all, protobuf.wallet_pb2, "
          "berkeleydb.db, plyvel, google.protobuf, simplejson; print('Python dependencies OK')"])
     run([perl, "-MCompress::Raw::Lzma", "-MFile::Basename", "-e", "print qq(Perl dependencies OK\\n)"])
     run([root / "tools/hcxtools/hcxpcapngtool.exe", "--version"])
@@ -49,7 +52,7 @@ def main():
             raise RuntimeError("Missing extractor: " + key)
         command = [tool]
         if tool.suffix in (".py", ".pl"):
-            command.insert(0, python if tool.suffix == ".py" else perl)
+            command = ([pdf_python, "-X", "utf8"] if key == "pdf" else [python if tool.suffix == ".py" else perl]) + command
         run(command, success=False)
         resolved[key] = tool.name
     (root / "tools/manifest.json").write_text(json.dumps({"catalog": resolved, "runtime": "Cygwin"}, indent=2) + "\n")

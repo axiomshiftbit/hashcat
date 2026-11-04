@@ -1,0 +1,240 @@
+{
+  "pyhanko": {
+    "filename": "pyhanko-0.38.1-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/62/bf/0e6441ccf1ed3e5eea3b5d945d888b312281b5ad81e4c98c14a9f2295841/pyhanko-0.38.1-py3-none-any.whl",
+    "sha256": "723fdf1a6e27be72d0d7fbf65deccf03aeaa6fafbdddc5c698b6b2eba06c543d",
+    "version": "0.38.1",
+    "source": {
+      "filename": "pyhanko-0.38.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/89/d6/dd2189158321cd5a4326a4d82121cce8d0a1a8037deb5cdabab2e8f32d4a/pyhanko-0.38.1.tar.gz",
+      "sha256": "27348b2bb5c6756402102a930b3404a1ccce4d1102f81e56399df268dd90f70d"
+    }
+  },
+  "aiosignal": {
+    "filename": "aiosignal-1.4.0-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/fb/76/641ae371508676492379f16e2fa48f4e2c11741bd63c48be4b12a6b09cba/aiosignal-1.4.0-py3-none-any.whl",
+    "sha256": "053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e",
+    "version": "1.4.0",
+    "source": {
+      "filename": "aiosignal-1.4.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/61/62/06741b579156360248d1ec624842ad0edf697050bbaf7c3e46394e106ad1/aiosignal-1.4.0.tar.gz",
+      "sha256": "f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7"
+    }
+  },
+  "asn1crypto": {
+    "filename": "asn1crypto-1.5.1-py2.py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/c9/7f/09065fd9e27da0eda08b4d6897f1c13535066174cc023af248fc2a8d5e5a/asn1crypto-1.5.1-py2.py3-none-any.whl",
+    "sha256": "db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67",
+    "version": "1.5.1",
+    "source": {
+      "filename": "asn1crypto-1.5.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/de/cf/d547feed25b5244fcb9392e288ff9fdc3280b10260362fc45d37a798a6ee/asn1crypto-1.5.1.tar.gz",
+      "sha256": "13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c"
+    }
+  },
+  "cffi": {
+    "filename": "cffi-2.1.1-cp314-cp314-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/a7/06/1c3e01e3ba14c39f6d10bfbac52753b7e22259e38088e5cfe1d704918690/cffi-2.1.1-cp314-cp314-win_amd64.whl",
+    "sha256": "3222ba5d678f80a030e6afbcc33dc1ae5cb45facabb61cee2c7016b8432fde48",
+    "version": "2.1.1",
+    "source": {
+      "filename": "cffi-2.1.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz",
+      "sha256": "dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be"
+    }
+  },
+  "lxml": {
+    "filename": "lxml-6.1.3-cp314-cp314-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/0f/bc/5811cc73cac05e324e05ba9b0924e1a163a317a167ede8a9c748b11db30a/lxml-6.1.3-cp314-cp314-win_amd64.whl",
+    "sha256": "66299564c046bc7e0cc5de5106601eae907e9fa5904cd68a323380a8502f7861",
+    "version": "6.1.3",
+    "source": {
+      "filename": "lxml-6.1.3.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/23/ad/28ecd7cb894d172f3c9c80a075eeeb2017ac62e3632cee05a5f9493547eb/lxml-6.1.3.tar.gz",
+      "sha256": "45222d94ddd511536f3b2f7d9deae3b2339b4ce0f075f1ca25703b07cad9dd21"
+    }
+  },
+  "yarl": {
+    "filename": "yarl-1.25.1-cp314-cp314-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/f5/01/349c0386caedbbe488d519f252df54efac8a1459282d466c474bdd84a620/yarl-1.25.1-cp314-cp314-win_amd64.whl",
+    "sha256": "acfa7e22aa6c6e7a5996a41d275bfa01efa7ea56ab890590280e9063e2cf5c1b",
+    "version": "1.25.1",
+    "source": {
+      "filename": "yarl-1.25.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/75/16/e8be8e2fb175bbf41a0680381a319f1199fae256588241a2ac8677eafb49/yarl-1.25.1.tar.gz",
+      "sha256": "03dd38de09bc213e9a8b29761eec33ee1d5318dac0e49d8af36e4d27830e23a7"
+    }
+  },
+  "idna": {
+    "filename": "idna-3.20-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl",
+    "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+    "version": "3.20",
+    "source": {
+      "filename": "idna-3.20.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/f5/08/8eea9d4b8302028f3abb2c0813953f7aec26d33b7a8960ed760e65ff29fa/idna-3.20.tar.gz",
+      "sha256": "a7db850025b95ded1eae8a46181a1a6c56c92c96f0e2b005d9ff8dc0210cab44"
+    }
+  },
+  "propcache": {
+    "filename": "propcache-0.5.4-cp314-cp314-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/1e/9e/a0ac821a2229186af5e2e3c3635a78abb23cfddca57f38513ab5d70420f3/propcache-0.5.4-cp314-cp314-win_amd64.whl",
+    "sha256": "0a095db8e15a6020db149ecbed6461939fe74f6acaa3ae8b702a1fe8c38cd983",
+    "version": "0.5.4",
+    "source": {
+      "filename": "propcache-0.5.4.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/b3/9a/9fbf4e4ec0c2d7f1c32519fff782ef467859b8faa9fbc5331a96f6395d43/propcache-0.5.4.tar.gz",
+      "sha256": "ff6b113f50bc066a698db5d944d2c6dc7507168dd3341e255a8892fd0715a558"
+    }
+  },
+  "aiohttp": {
+    "filename": "aiohttp-3.14.5-cp314-cp314-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/a9/74/8cdaf0e58c2588371670d5a9a8215bbb971d36940b6e5d051967dd05c07d/aiohttp-3.14.5-cp314-cp314-win_amd64.whl",
+    "sha256": "6f967dde489ca6a8c02d093ab245d2cbf50ccb5c36adf0188b17b0ca39d24b67",
+    "version": "3.14.5",
+    "source": {
+      "filename": "aiohttp-3.14.5.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/6c/4c/bdccd81e9ee225b69c60e7766c9a5b05364f118f4d383713b89a682d772d/aiohttp-3.14.5.tar.gz",
+      "sha256": "5558a7f5a05af9ecf744af91e5baefc436f93c9333e656c27ec253f9a6bbe178"
+    }
+  },
+  "pycparser": {
+    "filename": "pycparser-3.12-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/b6/ae/315bbeee126a769cbde43cf4908acb4b40408d8bf8bbf334dd7368d8dadf/pycparser-3.12-py3-none-any.whl",
+    "sha256": "a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e",
+    "version": "3.12",
+    "source": {
+      "filename": "pycparser-3.12.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/cb/27/eeb9f307bf07060f3d9f9aa0fb8c15b01bdfded0a941e4b2719c7f94cacd/pycparser-3.12.tar.gz",
+      "sha256": "f03387877eab82ce01bbdfd0ba7252ee55a90b1c708d5129e2ce915475cf1db6"
+    }
+  },
+  "tzlocal": {
+    "filename": "tzlocal-5.4.5-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/7b/c1/9be4e1a8a30db8729a86628073910e56f85aaf8a659e053f376a2e6ea5a8/tzlocal-5.4.5-py3-none-any.whl",
+    "sha256": "ecab534f6d65d9deb4c4ea52c121ab6dd5958e9b878e71dcb102578269752454",
+    "version": "5.4.5",
+    "source": {
+      "filename": "tzlocal-5.4.5.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/d8/89/2bd035df331499589fc92e59375c17c6cea6a500453b2c5f6a6ec9572825/tzlocal-5.4.5.tar.gz",
+      "sha256": "ba976898bad27945178c9ca25c222c19e322b30c10342b9f40b46714f70d2d5f"
+    }
+  },
+  "certifi": {
+    "filename": "certifi-2026.10.23-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl",
+    "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+    "version": "2026.10.23",
+    "source": {
+      "filename": "certifi-2026.10.23.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/fd/11/b524cbd9bbdaca58608e4cf4053fd463417549e1959fa8d3aa18319f9555/certifi-2026.10.23.tar.gz",
+      "sha256": "a9895e6e2758b371e0545e321a3a8fd1fcfd9829ada8824a936dfb16aaaf36cd"
+    }
+  },
+  "cryptography": {
+    "filename": "cryptography-50.0.2-cp311-abi3-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/9a/4f/adfc442765721292fff86d314ce385d3249d22db42295c0dd057727b60f3/cryptography-50.0.2-cp311-abi3-win_amd64.whl",
+    "sha256": "7afa5a6602a9f29af1f3a2965f831bae7c9d5d597b7cbb716d41ab3b7d89879c",
+    "version": "50.0.2",
+    "source": {
+      "filename": "cryptography-50.0.2.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/9d/af/182eb91b0df3fe75c4d9f26fe70684569566745f6ba7e5c9c73a862c5252/cryptography-50.0.2.tar.gz",
+      "sha256": "7b46165bb56eb4704e2eaaf86f3c940d19154535d9b0ca7d6d590b04060e00d5"
+    }
+  },
+  "attrs": {
+    "filename": "attrs-26.1.0-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl",
+    "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+    "version": "26.1.0",
+    "source": {
+      "filename": "attrs-26.1.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/9a/8e/82a0fe20a541c03148528be8cac2408564a6c9a0cc7e9171802bc1d26985/attrs-26.1.0.tar.gz",
+      "sha256": "d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32"
+    }
+  },
+  "frozenlist": {
+    "filename": "frozenlist-1.8.0-cp314-cp314-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/59/ad/9caa9b9c836d9ad6f067157a531ac48b7d36499f5036d4141ce78c230b1b/frozenlist-1.8.0-cp314-cp314-win_amd64.whl",
+    "sha256": "3e0761f4d1a44f1d1a47996511752cf3dcec5bbdd9cc2b4fe595caf97754b7a0",
+    "version": "1.8.0",
+    "source": {
+      "filename": "frozenlist-1.8.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/2d/f5/c831fac6cc817d26fd54c7eaccd04ef7e0288806943f7cc5bbf69f3ac1f0/frozenlist-1.8.0.tar.gz",
+      "sha256": "3ede829ed8d842f6cd48fc7081d7a41001a56f1f38603f9d49bf3020d59a31ad"
+    }
+  },
+  "multidict": {
+    "filename": "multidict-7.2.1-cp314-cp314-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/08/8f/2ec03cddf5f283f979813f8c5d38f5df798e21cb07a124dfc311ed28d8e9/multidict-7.2.1-cp314-cp314-win_amd64.whl",
+    "sha256": "6e22756c6e2d4f57ead0d2e6be179d8a16d661bee424b81de0c6c0c1305ec39f",
+    "version": "7.2.1",
+    "source": {
+      "filename": "multidict-7.2.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/7b/6b/29ef8e752f5854dcc267ded0652c475bec99b86f255957a0d4fcad657b18/multidict-7.2.1.tar.gz",
+      "sha256": "e8af3e6f1bdbc31fd762b094133b478b89988eaebc63cbe82b1d9e3bbd15cede"
+    }
+  },
+  "uritools": {
+    "filename": "uritools-6.1.3-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/ac/76/e9bb35862bcc5b82218d2c017b1eacdcfeb3ba46ce0c0ca8ffc4db80ddbe/uritools-6.1.3-py3-none-any.whl",
+    "sha256": "136f113e76e53f85bf2d9cce0c3d40ceec775d0409e7d6de9b28f046a7d42838",
+    "version": "6.1.3",
+    "source": {
+      "filename": "uritools-6.1.3.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/a3/0d/20d02264b6682f07e92cbf7ee43e5e803670d101a03ef204ba18368c321f/uritools-6.1.3.tar.gz",
+      "sha256": "3a498e7e85ef3249343d5710618d641a414da0fbae6d23053ada7976ee83ea5f"
+    }
+  },
+  "aiohappyeyeballs": {
+    "filename": "aiohappyeyeballs-2.7.1-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/71/43/1947f06babed6b3f1d7f38b0c767f52df66bfb2bc10b468c4a7de9eceff2/aiohappyeyeballs-2.7.1-py3-none-any.whl",
+    "sha256": "9243213661e29250eb41368e5daa826fc017156c3b8a11440826b2e3ed376472",
+    "version": "2.7.1",
+    "source": {
+      "filename": "aiohappyeyeballs-2.7.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/ce/f4/eec0465c2f67b2664688d0240b3212d5196fd89e741df67ddb81f8d35658/aiohappyeyeballs-2.7.1.tar.gz",
+      "sha256": "065665c041c42a5938ed220bdcd7230f22527fbec085e1853d2402c8a3615d9d"
+    }
+  },
+  "pyhanko-certvalidator": {
+    "filename": "pyhanko_certvalidator-0.33.0-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/e8/22/fc8a485269187b85eadd2cf536b92be403a238932e7d3943ba176fb31041/pyhanko_certvalidator-0.33.0-py3-none-any.whl",
+    "sha256": "72d3b830c0427a7aae45873ba7b4e34cb86caed451eff9dfb4394a69e93bb169",
+    "version": "0.33.0",
+    "source": {
+      "filename": "pyhanko_certvalidator-0.33.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/7f/49/f6ec683b23c1275940c2f68490b2bfbfe6ed246b50b7108561ef21678372/pyhanko_certvalidator-0.33.0.tar.gz",
+      "sha256": "a4c3309f99c77cdcad24532f75340bd8cc8b108aa8992b8102d44f250ebd449c"
+    }
+  },
+  "oscrypto": {
+    "filename": "oscrypto-1.3.0-py2.py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/01/7c/fa07d3da2b6253eb8474be16eab2eadf670460e364ccc895ca7ff388ee30/oscrypto-1.3.0-py2.py3-none-any.whl",
+    "sha256": "2b2f1d2d42ec152ca90ccb5682f3e051fb55986e1b170ebde472b133713e7085",
+    "version": "1.3.0",
+    "source": {
+      "filename": "oscrypto-1.3.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/06/81/a7654e654a4b30eda06ef9ad8c1b45d1534bfd10b5c045d0c0f6b16fecd2/oscrypto-1.3.0.tar.gz",
+      "sha256": "6f5fef59cb5b3708321db7cca56aed8ad7e662853351e7991fcf60ec606d47a4"
+    }
+  },
+  "tzdata": {
+    "version": "2026.6",
+    "url": "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/tzdata-2026.6-py2.py3-none-any.whl",
+    "filename": "tzdata-2026.6-py2.py3-none-any.whl",
+    "sha256": "0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/7a/29/6a1391d31cd00ff9e927215a224a880e1e84e826b64ba80a499e51c074d8/tzdata-2026.6.tar.gz",
+      "filename": "tzdata-2026.6.tar.gz",
+      "sha256": "85d2cd9c09f81f0bb29db27759fc83af4f1e620efb814f8c5bf8b4cc4feece6d"
+    }
+  },
+  "python-runtime": {
+    "version": "3.14.9",
+    "url": "https://www.python.org/ftp/python/3.14.9/python-3.14.9-embed-amd64.zip",
+    "filename": "python-3.14.9-embed-amd64.zip",
+    "sha256": "3c01d7cfc666f746a6f064f60fb2156ab0ec464d3d738ab796371a46a9bb24a2",
+    "source": null
+  }
+}

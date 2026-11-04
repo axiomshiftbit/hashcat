@@ -1,26 +1,4 @@
 {
-  "pyhanko": {
-    "version": "0.33.0",
-    "url": "https://files.pythonhosted.org/packages/d1/47/c25a4849951255b50ef0662dc04fa7227120ed31fb6aed398946ae164f46/pyhanko-0.33.0-py3-none-any.whl",
-    "filename": "pyhanko-0.33.0-py3-none-any.whl",
-    "sha256": "3461a6c803a20b5b9847523ef991fd3f09bb612f41ec71dbb70128ce7651dbab",
-    "source": {
-      "url": "https://files.pythonhosted.org/packages/4f/9f/c8baf04b8aaadf099d8f12b26fe57d7b0b6842179160e5e3099c56d06bac/pyhanko-0.33.0.tar.gz",
-      "filename": "pyhanko-0.33.0.tar.gz",
-      "sha256": "68ea123efd6612420fd2f1856c0b7a4bfa70f4af0abc0ddb329416844f5befb6"
-    }
-  },
-  "pyhanko-certvalidator": {
-    "version": "0.29.0",
-    "url": "https://files.pythonhosted.org/packages/a9/ba/a4e8fb3c43fd238f329f92996c7a1940ec1c0da005095c19dc91ea94bbe3/pyhanko_certvalidator-0.29.0-py3-none-any.whl",
-    "filename": "pyhanko_certvalidator-0.29.0-py3-none-any.whl",
-    "sha256": "567c609900149d133aa30fcf0efb7128ca5915b58bf899705441726a0618925f",
-    "source": {
-      "url": "https://files.pythonhosted.org/packages/a0/3d/3e41e3b492b84e327c2340c380439c6805f9d2a3b574f662041958f19373/pyhanko_certvalidator-0.29.0.tar.gz",
-      "filename": "pyhanko_certvalidator-0.29.0.tar.gz",
-      "sha256": "8ebb98e742e4a2e2347374535c1329abf77c398addb31e623f33645ace02efa4"
-    }
-  },
   "tzlocal": {
     "version": "5.4.5",
     "url": "https://files.pythonhosted.org/packages/7b/c1/9be4e1a8a30db8729a86628073910e56f85aaf8a659e053f376a2e6ea5a8/tzlocal-5.4.5-py3-none-any.whl",
@@ -165,14 +143,14 @@
     }
   },
   "protobuf": {
-    "version": "3.20.3",
-    "url": "https://files.pythonhosted.org/packages/8d/14/619e24a4c70df2901e1f4dbc50a6291eb63a759172558df326347dce1f0d/protobuf-3.20.3-py2.py3-none-any.whl",
-    "filename": "protobuf-3.20.3-py2.py3-none-any.whl",
-    "sha256": "a7ca6d488aa8ff7f329d4c545b2dbad8ac31464f1d8b1c87ad1346717731e4db",
+    "filename": "protobuf-7.36.2-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/e4/04/d52c7016b04b6c5108f26691f9d33ec82a9b65d041f1a9c771137693d618/protobuf-7.36.2-py3-none-any.whl",
+    "sha256": "bdb3a345d48db958e6ce1f18e508beb0cc981d64f24088427549c866cd039f1e",
+    "version": "7.36.2",
     "source": {
-      "url": "https://files.pythonhosted.org/packages/55/5b/e3d951e34f8356e5feecacd12a8e3b258a1da6d9a03ad1770f28925f29bc/protobuf-3.20.3.tar.gz",
-      "filename": "protobuf-3.20.3.tar.gz",
-      "sha256": "2e3427429c9cffebf259491be0af70189607f365c2f41c7c3764af6f337105f2"
+      "filename": "protobuf-7.36.2.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/d9/89/5b8517baa72f84a67b8a307ba953c91057af618bf40bf676f3c03551f8f0/protobuf-7.36.2.tar.gz",
+      "sha256": "497d0463ff3316681da6c0b9e8d06cb465d61abce00b613ab42226175644d1bb"
     }
   },
   "simplejson": {

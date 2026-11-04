@@ -53,7 +53,6 @@
     "perl_base",
     "python312",
     "python312-cffi",
-    "python312-cryptography",
     "python312-html5lib",
     "python312-idna",
     "python312-jaraco_context",
@@ -89,6 +88,7 @@
     "curl",
     "cygwin",
     "cygwin-devel",
+    "dash",
     "desktop-file-utils",
     "diffutils",
     "findutils",
@@ -204,7 +204,6 @@
     "python312-cffi",
     "python312-chardet",
     "python312-coverage",
-    "python312-cryptography",
     "python312-cython",
     "python312-devel",
     "python312-docutils",
@@ -1868,19 +1867,6 @@
         "sha512": "f0065e6a42cc13f13b886e81b0dd3370f3ab2489f995f8b99d1653c2a9aa168a602d216170c0936c4beb99a3959f408bc58605053c1f7e9df09f3c4b01736c0e"
       }
     },
-    "python312-cryptography": {
-      "version": "46.0.3-1",
-      "install": {
-        "path": "x86_64/release/python-cryptography/python312-cryptography/python312-cryptography-46.0.3-1-x86_64.tar.xz",
-        "size": 1424944,
-        "sha512": "8098b2694480fe58dda91f1ad62b2e2eaaa8fc2aba60f4dea926eddbeae9223c3091de7066e70501bc7df6165642761f51cdcb0cd166a13dc238bdaea393196a"
-      },
-      "source": {
-        "path": "x86_64/release/python-cryptography/python-cryptography-46.0.3-1-src.tar.xz",
-        "size": 835192,
-        "sha512": "65e7720f1ee4d39e4b010eebeee27a365cb6a75c97e887ade798b634f3cb75c75332b4b821d67e4aae9cd99482298d3439c7fa1df84b0e7b808b178da62464cf"
-      }
-    },
     "python312-cython": {
       "version": "3.3.0-1",
       "install": {
@@ -2542,6 +2528,19 @@
         "path": "x86_64/release/rebase/rebase-4.6.6-1-src.tar.xz",
         "size": 110220,
         "sha512": "c7a3717798a2c719b8a1835b6886ce7f3e6030e99383614b8296754400a358e69aa05bf147e62f12d4a5d0b9729b0b08e062771a820e65678f6f12627bf2b026"
+      }
+    },
+    "dash": {
+      "version": "0.5.12-5",
+      "install": {
+        "path": "x86_64/release/dash/dash-0.5.12-5.tar.xz",
+        "size": 79612,
+        "sha512": "8891165224ca8531ad7b601309bc1a74f8b68dad24721060fd3db5d12ae504e3c96bbd0217006bbcbe0650d13283f04c1f58412bde54c40f19acb5291dfaced9"
+      },
+      "source": {
+        "path": "x86_64/release/dash/dash-0.5.12-5-src.tar.xz",
+        "size": 249124,
+        "sha512": "f37e5b999bec90dc7c591229664d5103f6fd4c19e991968a57032f45aaa3e814ea3da491b20603cd1348d8d1e251b8c11c054fdb36c4b2dee90fe0ce713fae67"
       }
     }
   }
