@@ -1,0 +1,222 @@
+{
+  "pyhanko": {
+    "version": "0.33.0",
+    "url": "https://files.pythonhosted.org/packages/d1/47/c25a4849951255b50ef0662dc04fa7227120ed31fb6aed398946ae164f46/pyhanko-0.33.0-py3-none-any.whl",
+    "filename": "pyhanko-0.33.0-py3-none-any.whl",
+    "sha256": "3461a6c803a20b5b9847523ef991fd3f09bb612f41ec71dbb70128ce7651dbab",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/4f/9f/c8baf04b8aaadf099d8f12b26fe57d7b0b6842179160e5e3099c56d06bac/pyhanko-0.33.0.tar.gz",
+      "filename": "pyhanko-0.33.0.tar.gz",
+      "sha256": "68ea123efd6612420fd2f1856c0b7a4bfa70f4af0abc0ddb329416844f5befb6"
+    }
+  },
+  "pyhanko-certvalidator": {
+    "version": "0.29.0",
+    "url": "https://files.pythonhosted.org/packages/a9/ba/a4e8fb3c43fd238f329f92996c7a1940ec1c0da005095c19dc91ea94bbe3/pyhanko_certvalidator-0.29.0-py3-none-any.whl",
+    "filename": "pyhanko_certvalidator-0.29.0-py3-none-any.whl",
+    "sha256": "567c609900149d133aa30fcf0efb7128ca5915b58bf899705441726a0618925f",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/a0/3d/3e41e3b492b84e327c2340c380439c6805f9d2a3b574f662041958f19373/pyhanko_certvalidator-0.29.0.tar.gz",
+      "filename": "pyhanko_certvalidator-0.29.0.tar.gz",
+      "sha256": "8ebb98e742e4a2e2347374535c1329abf77c398addb31e623f33645ace02efa4"
+    }
+  },
+  "tzlocal": {
+    "version": "5.4.5",
+    "url": "https://files.pythonhosted.org/packages/7b/c1/9be4e1a8a30db8729a86628073910e56f85aaf8a659e053f376a2e6ea5a8/tzlocal-5.4.5-py3-none-any.whl",
+    "filename": "tzlocal-5.4.5-py3-none-any.whl",
+    "sha256": "ecab534f6d65d9deb4c4ea52c121ab6dd5958e9b878e71dcb102578269752454",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/d8/89/2bd035df331499589fc92e59375c17c6cea6a500453b2c5f6a6ec9572825/tzlocal-5.4.5.tar.gz",
+      "filename": "tzlocal-5.4.5.tar.gz",
+      "sha256": "ba976898bad27945178c9ca25c222c19e322b30c10342b9f40b46714f70d2d5f"
+    }
+  },
+  "tzdata": {
+    "version": "2026.6",
+    "url": "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/tzdata-2026.6-py2.py3-none-any.whl",
+    "filename": "tzdata-2026.6-py2.py3-none-any.whl",
+    "sha256": "0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/7a/29/6a1391d31cd00ff9e927215a224a880e1e84e826b64ba80a499e51c074d8/tzdata-2026.6.tar.gz",
+      "filename": "tzdata-2026.6.tar.gz",
+      "sha256": "85d2cd9c09f81f0bb29db27759fc83af4f1e620efb814f8c5bf8b4cc4feece6d"
+    }
+  },
+  "requests": {
+    "version": "2.34.2",
+    "url": "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl",
+    "filename": "requests-2.34.2-py3-none-any.whl",
+    "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/ac/c3/e2a2b89f2d3e2179abd6d00ebd70bff6273f37fb3e0cc209f48b39d00cbf/requests-2.34.2.tar.gz",
+      "filename": "requests-2.34.2.tar.gz",
+      "sha256": "f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed"
+    }
+  },
+  "pyyaml": {
+    "version": "6.0.3",
+    "url": "https://files.pythonhosted.org/packages/05/8e/961c0007c59b8dd7729d542c61a4d537767a59645b82a0b521206e1e25c2/pyyaml-6.0.3.tar.gz",
+    "filename": "pyyaml-6.0.3.tar.gz",
+    "sha256": "d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/05/8e/961c0007c59b8dd7729d542c61a4d537767a59645b82a0b521206e1e25c2/pyyaml-6.0.3.tar.gz",
+      "filename": "pyyaml-6.0.3.tar.gz",
+      "sha256": "d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f"
+    }
+  },
+  "asn1crypto": {
+    "version": "1.5.1",
+    "url": "https://files.pythonhosted.org/packages/c9/7f/09065fd9e27da0eda08b4d6897f1c13535066174cc023af248fc2a8d5e5a/asn1crypto-1.5.1-py2.py3-none-any.whl",
+    "filename": "asn1crypto-1.5.1-py2.py3-none-any.whl",
+    "sha256": "db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/de/cf/d547feed25b5244fcb9392e288ff9fdc3280b10260362fc45d37a798a6ee/asn1crypto-1.5.1.tar.gz",
+      "filename": "asn1crypto-1.5.1.tar.gz",
+      "sha256": "13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c"
+    }
+  },
+  "oscrypto": {
+    "version": "1.3.0",
+    "url": "https://files.pythonhosted.org/packages/01/7c/fa07d3da2b6253eb8474be16eab2eadf670460e364ccc895ca7ff388ee30/oscrypto-1.3.0-py2.py3-none-any.whl",
+    "filename": "oscrypto-1.3.0-py2.py3-none-any.whl",
+    "sha256": "2b2f1d2d42ec152ca90ccb5682f3e051fb55986e1b170ebde472b133713e7085",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/06/81/a7654e654a4b30eda06ef9ad8c1b45d1534bfd10b5c045d0c0f6b16fecd2/oscrypto-1.3.0.tar.gz",
+      "filename": "oscrypto-1.3.0.tar.gz",
+      "sha256": "6f5fef59cb5b3708321db7cca56aed8ad7e662853351e7991fcf60ec606d47a4"
+    }
+  },
+  "uritools": {
+    "version": "6.1.3",
+    "url": "https://files.pythonhosted.org/packages/ac/76/e9bb35862bcc5b82218d2c017b1eacdcfeb3ba46ce0c0ca8ffc4db80ddbe/uritools-6.1.3-py3-none-any.whl",
+    "filename": "uritools-6.1.3-py3-none-any.whl",
+    "sha256": "136f113e76e53f85bf2d9cce0c3d40ceec775d0409e7d6de9b28f046a7d42838",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/a3/0d/20d02264b6682f07e92cbf7ee43e5e803670d101a03ef204ba18368c321f/uritools-6.1.3.tar.gz",
+      "filename": "uritools-6.1.3.tar.gz",
+      "sha256": "3a498e7e85ef3249343d5710618d641a414da0fbae6d23053ada7976ee83ea5f"
+    }
+  },
+  "urllib3": {
+    "version": "2.8.0",
+    "url": "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl",
+    "filename": "urllib3-2.8.0-py3-none-any.whl",
+    "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/e3/05/b17359e1cefb4f909b5e40b1b90a496d987258916dbbf88e842c729f510e/urllib3-2.8.0.tar.gz",
+      "filename": "urllib3-2.8.0.tar.gz",
+      "sha256": "63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63"
+    }
+  },
+  "charset-normalizer": {
+    "version": "3.5.2",
+    "url": "https://files.pythonhosted.org/packages/fc/ad/d07d7862a62ffa6d79d68074d14823243dd235a77c45262acbf6adeb28bf/charset_normalizer-3.5.2-py3-none-any.whl",
+    "filename": "charset_normalizer-3.5.2-py3-none-any.whl",
+    "sha256": "b6b751274acb69d77b3323d6b7dbaa3c7fdfc1eb829b7eb61d262f32e1af9685",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/33/1c/f41d4e74c28ab327ff3acd36053f7ea506c55872d7a90b0fa71aa3ab0c89/charset_normalizer-3.5.2.tar.gz",
+      "filename": "charset_normalizer-3.5.2.tar.gz",
+      "sha256": "39de2a259fc954455c57274dc94c79d5842774e1247a016aff30bc0efed0f4ef"
+    }
+  },
+  "certifi": {
+    "version": "2026.10.23",
+    "url": "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl",
+    "filename": "certifi-2026.10.23-py3-none-any.whl",
+    "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/fd/11/b524cbd9bbdaca58608e4cf4053fd463417549e1959fa8d3aa18319f9555/certifi-2026.10.23.tar.gz",
+      "filename": "certifi-2026.10.23.tar.gz",
+      "sha256": "a9895e6e2758b371e0545e321a3a8fd1fcfd9829ada8824a936dfb16aaaf36cd"
+    }
+  },
+  "pycryptodome": {
+    "version": "3.24.1",
+    "url": "https://files.pythonhosted.org/packages/a9/75/b8a9ba9a15b1b190d1fb21e75e921934c9bcd7e63e137f96b56ed274328c/pycryptodome-3.24.1.tar.gz",
+    "filename": "pycryptodome-3.24.1.tar.gz",
+    "sha256": "3f9e74444c0ecbec7af232a95d282c74b114d53212ce075ed17b7fd7dca32bb3",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/a9/75/b8a9ba9a15b1b190d1fb21e75e921934c9bcd7e63e137f96b56ed274328c/pycryptodome-3.24.1.tar.gz",
+      "filename": "pycryptodome-3.24.1.tar.gz",
+      "sha256": "3f9e74444c0ecbec7af232a95d282c74b114d53212ce075ed17b7fd7dca32bb3"
+    }
+  },
+  "pyasn1": {
+    "version": "0.6.5",
+    "url": "https://files.pythonhosted.org/packages/19/1f/3eefd5c84c35cae44549ce1c7f7e58f7945b34f5a6bce07a135438522073/pyasn1-0.6.5-py3-none-any.whl",
+    "filename": "pyasn1-0.6.5-py3-none-any.whl",
+    "sha256": "4017b0fce125096b8573b39c989fdb1a4b19cf761e683398184550fea0e66587",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/88/7e/3c0da41061a2021cac7cd524fd57092adbe5b515e8bf9005702e366802e2/pyasn1-0.6.5.tar.gz",
+      "filename": "pyasn1-0.6.5.tar.gz",
+      "sha256": "6b11616a6bcf3a40e635f082bb232fa57b5e0dd7f517bd7ddd69ec3794508a47"
+    }
+  },
+  "scapy": {
+    "version": "2.8.0",
+    "url": "https://files.pythonhosted.org/packages/b9/1e/f07107ed79e69a659f1ab65ee7894d71fc1cf15108cf475782d3979a480d/scapy-2.8.0-py3-none-any.whl",
+    "filename": "scapy-2.8.0-py3-none-any.whl",
+    "sha256": "abf855145ee829a42b2eb28983cd6a0a52b12a31d3f861cb7be36791195ed9aa",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/80/06/f7e09b3240196326fb343d6bd931cafedd26ae1dfdbd7cd0183cae3029d3/scapy-2.8.0.tar.gz",
+      "filename": "scapy-2.8.0.tar.gz",
+      "sha256": "0eacd1f940d115611c1b8a4696f315b4b80caf2951e546893a3d0cd7f6bfd6fd"
+    }
+  },
+  "protobuf": {
+    "version": "3.20.3",
+    "url": "https://files.pythonhosted.org/packages/8d/14/619e24a4c70df2901e1f4dbc50a6291eb63a759172558df326347dce1f0d/protobuf-3.20.3-py2.py3-none-any.whl",
+    "filename": "protobuf-3.20.3-py2.py3-none-any.whl",
+    "sha256": "a7ca6d488aa8ff7f329d4c545b2dbad8ac31464f1d8b1c87ad1346717731e4db",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/55/5b/e3d951e34f8356e5feecacd12a8e3b258a1da6d9a03ad1770f28925f29bc/protobuf-3.20.3.tar.gz",
+      "filename": "protobuf-3.20.3.tar.gz",
+      "sha256": "2e3427429c9cffebf259491be0af70189607f365c2f41c7c3764af6f337105f2"
+    }
+  },
+  "simplejson": {
+    "version": "3.20.2",
+    "url": "https://files.pythonhosted.org/packages/05/5b/83e1ff87eb60ca706972f7e02e15c0b33396e7bdbd080069a5d1b53cf0d8/simplejson-3.20.2-py3-none-any.whl",
+    "filename": "simplejson-3.20.2-py3-none-any.whl",
+    "sha256": "3b6bb7fb96efd673eac2e4235200bfffdc2353ad12c54117e1e4e2fc485ac017",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/41/f4/a1ac5ed32f7ed9a088d62a59d410d4c204b3b3815722e2ccfb491fa8251b/simplejson-3.20.2.tar.gz",
+      "filename": "simplejson-3.20.2.tar.gz",
+      "sha256": "5fe7a6ce14d1c300d80d08695b7f7e633de6cd72c80644021874d985b3393649"
+    }
+  },
+  "berkeleydb": {
+    "version": "18.1.17",
+    "url": "https://files.pythonhosted.org/packages/99/b8/9e8f3288b5dfd67d8c2265a27348a79db15919c81dcb08f9dddacfb323e2/berkeleydb-18.1.17.tar.gz",
+    "filename": "berkeleydb-18.1.17.tar.gz",
+    "sha256": "11e193bafccf87ba95e0d68af453b816af4c91763969331cddc63a58a75646d4",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/99/b8/9e8f3288b5dfd67d8c2265a27348a79db15919c81dcb08f9dddacfb323e2/berkeleydb-18.1.17.tar.gz",
+      "filename": "berkeleydb-18.1.17.tar.gz",
+      "sha256": "11e193bafccf87ba95e0d68af453b816af4c91763969331cddc63a58a75646d4"
+    }
+  },
+  "plyvel": {
+    "version": "1.5.1",
+    "url": "https://files.pythonhosted.org/packages/4b/b0/23f0cc21c943355fc5d49f1933e97812269d7a865daef5b9758b62902d46/plyvel-1.5.1.tar.gz",
+    "filename": "plyvel-1.5.1.tar.gz",
+    "sha256": "3caf6009e4fc24fbf8712d3f5ef3da7e56495c26a488df2161218fc34e46019c",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/4b/b0/23f0cc21c943355fc5d49f1933e97812269d7a865daef5b9758b62902d46/plyvel-1.5.1.tar.gz",
+      "filename": "plyvel-1.5.1.tar.gz",
+      "sha256": "3caf6009e4fc24fbf8712d3f5ef3da7e56495c26a488df2161218fc34e46019c"
+    }
+  },
+  "olefile": {
+    "version": "0.47",
+    "url": "https://files.pythonhosted.org/packages/17/d3/b64c356a907242d719fc668b71befd73324e47ab46c8ebbbede252c154b2/olefile-0.47-py2.py3-none-any.whl",
+    "filename": "olefile-0.47-py2.py3-none-any.whl",
+    "sha256": "543c7da2a7adadf21214938bb79c83ea12b473a4b6ee4ad4bf854e7715e13d1f",
+    "source": {
+      "url": "https://files.pythonhosted.org/packages/69/1b/077b508e3e500e1629d366249c3ccb32f95e50258b231705c09e3c7a4366/olefile-0.47.zip",
+      "filename": "olefile-0.47.zip",
+      "sha256": "599383381a0bf3dfbd932ca0ca6515acd174ed48870cbf7fee123d698c192c1c"
+    }
+  }
+}

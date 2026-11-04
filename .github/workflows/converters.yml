@@ -1,0 +1,55 @@
+name: Windows converter bundle
+on:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  converters:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        id: converter-cache
+        with:
+          path: gui/bundle
+          key: converters-windows-${{ hashFiles('gui/packaging/**', 'gui/third_party/hashcat_reactor/tool_registry.json') }}
+      - name: Prepare locked converter sources and runtimes
+        if: steps.converter-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          python gui/packaging/cygwin_bundle.py "$env:RUNNER_TEMP\converters" gui/bundle
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Build portable converters
+        if: steps.converter-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $work = "$env:RUNNER_TEMP\converters"
+          $output = (Resolve-Path gui/bundle).Path
+          $packaging = (Resolve-Path gui/packaging).Path
+          $env:PATH = "$work\cygwin\bin;$env:PATH"
+          & "$work\cygwin\bin\bash.exe" --noprofile --norc "$($packaging.Replace('\','/'))/build_converters.sh" $work $output $packaging
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Rename-Item "$work\cygwin" cygwin-build-hidden
+      - name: Verify isolated portable runtimes
+        shell: pwsh
+        run: |
+          python gui/packaging/verify_converters.py gui/bundle
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Archive converter bundle
+        shell: pwsh
+        working-directory: gui/bundle
+        run: |
+          7z a -tzip -mx=5 -mmt=2 ../converter-bundle.zip tools licenses
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: Windows-converter-bundle
+          path: gui/converter-bundle.zip
+          if-no-files-found: error

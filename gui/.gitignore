@@ -1,3 +1,5 @@
 /build*/
 /dist/
+/bundle/
+/converter-bundle.zip
 *.user

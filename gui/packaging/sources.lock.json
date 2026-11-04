@@ -1,0 +1,22 @@
+{
+  "john": {
+    "url": "https://codeload.github.com/openwall/john/tar.gz/5184bc0b8c105f8c5978b112e723d65b2de3e63e",
+    "filename": "john.tar.gz",
+    "sha256": "22220438d7a31770a707a478772071fba5454787d8088d5525f7839fb25c199e"
+  },
+  "hcxtools": {
+    "url": "https://github.com/ZerBea/hcxtools/releases/download/8.0.0/hcxtools-8.0.0.tar.gz",
+    "filename": "hcxtools.tar.gz",
+    "sha256": "4cc9dfe7ab2c7d5cc5f39f887741499b146ee14d0a50bda8113025a0041b3c1e"
+  },
+  "leveldb": {
+    "url": "https://codeload.github.com/google/leveldb/tar.gz/refs/tags/1.23",
+    "filename": "leveldb.tar.gz",
+    "sha256": "9a37f8a6174f09bd622bc723b55881dc541cd50747cbd08831c2a82d620f6d76"
+  },
+  "certificates": {
+    "url": "https://curl.se/ca/cacert.pem",
+    "filename": "cacert.pem",
+    "sha256": "796f1389bfea13c0ed78f663b765baaff54a508e5483786bd6ece73c5e3e3cbe"
+  }
+}
