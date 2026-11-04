@@ -56,6 +56,8 @@ jobs:
       - name: Verify isolated portable runtimes
         shell: pwsh
         run: |
+          python gui/packaging/materialize_john_notices.py gui/bundle
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python gui/packaging/verify_converters.py gui/bundle
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Archive converter bundle
