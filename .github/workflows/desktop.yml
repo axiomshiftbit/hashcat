@@ -53,6 +53,27 @@ jobs:
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\real-windows.txt"
           if ($result) { exit $result }
+      - name: Document extraction integration
+        shell: pwsh
+        run: |
+          python -m pip install pypdf==6.21.4 pyhanko==0.38.1 msoffcrypto-tool==6.1.0 python-docx==1.2.0
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:JOHN_RUN = "$env:RUNNER_TEMP\john-tools"
+          New-Item -ItemType Directory -Force $env:JOHN_RUN | Out-Null
+          foreach ($tool in @('pdf2john.py', 'office2john.py')) {
+            Invoke-WebRequest "https://raw.githubusercontent.com/openwall/john/5184bc0b8c105f8c5978b112e723d65b2de3e63e/run/$tool" -OutFile "$env:JOHN_RUN\$tool"
+          }
+          $env:DOCUMENT_FIXTURES = "$env:RUNNER_TEMP\document fixtures"
+          $env:TEST_PYTHON = (Get-Command python).Source
+          python gui/tests/generate_documents.py $env:DOCUMENT_FIXTURES
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
+          $env:POCL_MAX_PTHREAD_COUNT = '2'
+          $env:GUI_SCREENSHOT = "$env:RUNNER_TEMP\documents-windows.png"
+          & gui/build/Release/desktop_tests.exe real_document_extraction -o "$env:RUNNER_TEMP\documents-windows.txt,txt"
+          $result = $LASTEXITCODE
+          Get-Content "$env:RUNNER_TEMP\documents-windows.txt"
+          if ($result) { exit $result }
       - name: WSL capture conversion
         shell: pwsh
         run: |
@@ -97,6 +118,10 @@ jobs:
           Copy-Item "$env:RUNNER_TEMP\engine\hashcat-8.0.0" gui/dist/HashcatDesktop/hashcat -Recurse
           if (Test-Path gui/dist/HashcatDesktop/hashcat/cache) { Remove-Item gui/dist/HashcatDesktop/hashcat/cache -Recurse -Force }
           Copy-Item gui/README*.md gui/dist/HashcatDesktop/
+          Copy-Item gui/LICENSE gui/dist/HashcatDesktop/LICENSE.txt
+          Copy-Item gui/THIRD_PARTY.md gui/dist/HashcatDesktop/
+          git archive --format=tar.gz --output=gui/dist/HashcatDesktop/HashcatDesktop-source.tar.gz HEAD gui .github/workflows/desktop.yml docs/license.txt docs/credits.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Include Qt sources and notices
         timeout-minutes: 3
         shell: pwsh
@@ -141,6 +166,8 @@ jobs:
             ${{ runner.temp }}/desktop-windows.png*
             ${{ runner.temp }}/real-windows.txt
             ${{ runner.temp }}/converters-windows.txt
+            ${{ runner.temp }}/documents-windows.txt
+            ${{ runner.temp }}/documents-windows.png*
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -149,7 +176,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-base-dev ninja-build hashcat pocl-opencl-icd ocl-icd-libopencl1 hcxtools xvfb xauth
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-base-dev ninja-build hashcat pocl-opencl-icd ocl-icd-libopencl1 hcxtools xvfb xauth p7zip-full python3-venv libcompress-raw-lzma-perl
       - name: Build
         run: cmake -S gui -B gui/build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build gui/build -j2
       - name: Test
@@ -163,11 +190,38 @@ jobs:
           python3 gui/tests/generate_captures.py /tmp/desktop-captures
           ctest --test-dir gui/build --output-on-failure
           QT_QPA_PLATFORM=xcb xvfb-run -a gui/build/desktop_tests ui_queue_language_results_and_reload ui_expert_any_arguments
+      - name: Hashcat 8 modes and document extraction
+        env:
+          POCL_MAX_PTHREAD_COUNT: '2'
+          POCL_CPU_MAX_CU_COUNT: '2'
+          QT_QPA_PLATFORM: offscreen
+          GUI_SCREENSHOT: /tmp/documents-linux.png
+        run: |
+          curl --fail --location --retry 2 https://github.com/hashcat/hashcat/releases/download/v8.0.0/hashcat-8.0.0.7z -o "$RUNNER_TEMP/hashcat.7z"
+          python3 -c 'import hashlib,os; assert hashlib.sha256(open(os.environ["RUNNER_TEMP"]+"/hashcat.7z","rb").read()).hexdigest()=="9fa86e1bfd5dd898d3c83aa38a67b08db1ba5d2f5252dffa2af44a8c62585f49"'
+          7z x "$RUNNER_TEMP/hashcat.7z" "-o$RUNNER_TEMP/engine" -y > /dev/null
+          export REAL_HASHCAT="$RUNNER_TEMP/engine/hashcat-8.0.0/hashcat.bin"
+          chmod +x "$REAL_HASHCAT"
+          python3 -m venv "$RUNNER_TEMP/document-python"
+          export TEST_PYTHON="$RUNNER_TEMP/document-python/bin/python"
+          "$TEST_PYTHON" -m pip install pypdf==6.21.4 pyhanko==0.38.1 msoffcrypto-tool==6.1.0 python-docx==1.2.0
+          export JOHN_RUN="$RUNNER_TEMP/john-tools"
+          mkdir -p "$JOHN_RUN"
+          for tool in pdf2john.py office2john.py 7z2john.pl; do
+            curl --fail --location --retry 2 "https://raw.githubusercontent.com/openwall/john/5184bc0b8c105f8c5978b112e723d65b2de3e63e/run/$tool" -o "$JOHN_RUN/$tool"
+          done
+          export DOCUMENT_FIXTURES="$RUNNER_TEMP/document fixtures"
+          export TEST_PERL=/usr/bin/perl
+          "$TEST_PYTHON" gui/tests/generate_documents.py "$DOCUMENT_FIXTURES"
+          gui/build/desktop_tests real_hashcat_dictionary real_document_extraction -o /tmp/hashcat8-linux.txt,txt || { cat /tmp/hashcat8-linux.txt; exit 1; }
+          cat /tmp/hashcat8-linux.txt
       - name: Package
         run: |
           mkdir -p gui/dist/HashcatDesktop
           cp gui/build/hashcat-desktop gui/README*.md gui/dist/HashcatDesktop/
-          cp docs/license.txt gui/dist/HashcatDesktop/LICENSE.txt
+          cp gui/LICENSE gui/dist/HashcatDesktop/LICENSE.txt
+          cp gui/THIRD_PARTY.md gui/dist/HashcatDesktop/
+          git archive --format=tar.gz --output=gui/dist/HashcatDesktop/HashcatDesktop-source.tar.gz HEAD gui .github/workflows/desktop.yml docs/license.txt docs/credits.txt
           tar -czf gui/dist/HashcatDesktop-Linux-x64.tar.gz -C gui/dist HashcatDesktop
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
@@ -180,3 +234,5 @@ jobs:
           path: |
             gui/build/Testing/Temporary/LastTest.log
             /tmp/desktop-linux.png*
+            /tmp/hashcat8-linux.txt
+            /tmp/documents-linux.png*

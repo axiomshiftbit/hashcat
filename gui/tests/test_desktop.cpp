@@ -4,6 +4,9 @@
  */
 #include "window.h"
 #include "lang.h"
+#include "pathlist.h"
+#include "advancedform.h"
+#include "telemetry.h"
 
 #include <QtTest>
 #include <QCheckBox>
@@ -254,8 +257,105 @@ private slots:
   {
     QTest::addColumn<int> ("attack");
     QTest::addColumn<bool> ("mask_file");
-    for (int mode : {0, 1, 3, 6, 7, 9}) QTest::newRow (qPrintable (QString::number (mode))) << mode << false;
+    for (int mode : {0, 1, 3, 4, 5, 6, 7, 8, 9, 12}) QTest::newRow (qPrintable (QString::number (mode))) << mode << false;
     QTest::newRow ("mask-file") << 3 << true;
+  }
+
+  void merged_forms_and_profile ()
+  {
+    QTemporaryDir workspace; Window window (workspace.path ());
+    QCOMPARE (window.findChild<QComboBox *> ("attack")->count (), 10);
+    Job j = job (); j.attack = 12; j.mask = "?w?q";
+    j.wordlists = {file ("first selected.txt", "te\n"), file ("second selected.txt", "st\n")};
+    j.advanced = {{"ruleLeft", ":"}, {"skip", "10"}, {"pcfgScale", "4"}};
+    window.set_form (j);
+    auto *paths = window.findChild<PathList *> ("wordlists");
+    auto *list = paths->findChild<QListWidget *> ("entries");
+    paths->add_paths ({file ("disabled.txt"), j.wordlists[0]});
+    QCOMPARE (list->count (), 3);
+    list->item (2)->setCheckState (Qt::Unchecked);
+    list->setCurrentRow (1); paths->move_selected (-1);
+    const Job captured = window.form_job ();
+    QCOMPARE (captured.wordlists, QStringList ({j.wordlists[1], j.wordlists[0]}));
+    const Job restored = Job::from_json (captured.json ()); window.set_form (restored);
+    QCOMPARE (paths->snapshot (), captured.editor_state["wordlists"].toArray ());
+    QCOMPARE (window.form_job ().advanced["pcfgScale"].toString (), QString ("4"));
+    QVERIFY (!window.form_job ().arguments (workspace.path ()).contains ("scale=4"));
+    QVERIFY (window.form_job ().arguments (workspace.path ()).contains ("?w?q"));
+    list->item (0)->setCheckState (Qt::Unchecked); list->item (1)->setCheckState (Qt::Unchecked);
+    QVERIFY (!window.form_job ().validate ().isEmpty ());
+    auto *advanced = window.findChild<AdvancedForm *> ("advanced");
+    window.findChild<QComboBox *> ("attack")->setCurrentIndex (window.findChild<QComboBox *> ("attack")->findData (4));
+    QVERIFY (advanced->isTabEnabled (1)); QVERIFY (!advanced->isTabEnabled (2));
+    QCOMPARE (window.findChild<QComboBox *> ("extractKind")->count (), 78);
+    auto *telemetry = window.findChild<Telemetry *> ("telemetry");
+    for (int i = 0; i < 70; ++i) window.engine ()->status ({{"devices", QJsonArray {QJsonObject {{"speed", i * 100.0}, {"device_id", 1}}}}});
+    QCOMPARE (telemetry->sample_count (), 60); telemetry->clear (); QCOMPARE (telemetry->sample_count (), 0);
+  }
+
+  void extractor_process_and_validation ()
+  {
+    Extractor extractor; QSignalSpy done (&extractor, &Extractor::finished);
+    Extraction request; request.input = file ("synthetic input.pdf"); request.output = temp.filePath ("new extracted.hash");
+    request.tool = fake; request.hashcat = fake; request.arguments = {"--fixture-extract"};
+    QVERIFY (extractor.start (request)); QVERIFY (!extractor.start (request));
+    QTRY_COMPARE (done.size (), 1); QVERIFY (done[0][0].toBool ());
+    QCOMPARE (qvariant_cast<QList<int>> (done[0][2]), QList<int> ({10500, 10600}));
+    QFile hash (request.output); QVERIFY (hash.open (QIODevice::ReadOnly)); QCOMPARE (hash.readAll (), QByteArray ("$pdf$fixture\n")); hash.close ();
+    QVERIFY (!extractor.start (request));
+    request.output = temp.filePath ("incompatible.hash"); request.arguments = {"--fixture-incompatible"}; done.clear ();
+    QVERIFY (extractor.start (request)); QTRY_COMPARE (done.size (), 1); QVERIFY (!done[0][0].toBool ()); QVERIFY (!QFileInfo::exists (request.output));
+    request.arguments = {"--fixture-empty"}; done.clear ();
+    QVERIFY (extractor.start (request)); QTRY_COMPARE (done.size (), 1); QVERIFY (!done[0][0].toBool ());
+    request.arguments = {"--fixture-wait"}; done.clear ();
+    QVERIFY (extractor.start (request)); extractor.cancel (); QTRY_COMPARE (done.size (), 1); QVERIFY (!done[0][0].toBool ());
+    QCOMPARE (Extractor::normalize ("C:/price $5.rar:$RAR3$*0*abc::::metadata\nC:/price $5.rar:$RAR3$*0*abc::::metadata\n"), QByteArray ("$RAR3$*0*abc\n"));
+  }
+
+  void real_document_extraction_data ()
+  {
+    QTest::addColumn<QString> ("format");
+    QTest::newRow ("PDF") << "pdf"; QTest::newRow ("Office") << "docx"; QTest::newRow ("7z") << "7z";
+  }
+
+  void real_document_extraction ()
+  {
+    QFETCH (QString, format);
+    const QString fixtures = qEnvironmentVariable ("DOCUMENT_FIXTURES"), john = qEnvironmentVariable ("JOHN_RUN");
+    const QString binary = qEnvironmentVariable ("REAL_HASHCAT"), python = qEnvironmentVariable ("TEST_PYTHON");
+    if (fixtures.isEmpty () || john.isEmpty () || binary.isEmpty () || python.isEmpty ()) QSKIP ("Document integration dependencies not supplied");
+    const QString perl = qEnvironmentVariable ("TEST_PERL");
+    if (format == "7z" && perl.isEmpty ()) QSKIP ("7z integration requires Perl with Compress::Raw::Lzma");
+    QTemporaryDir workspace; Window window (workspace.path ()); window.show ();
+    window.findChild<QLineEdit *> ("binary")->setText (binary);
+    window.findChild<QLineEdit *> ("extractTool")->setText (QDir (john).filePath (format == "pdf" ? "pdf2john.py" : format == "7z" ? "7z2john.pl" : "office2john.py"));
+    window.findChild<QLineEdit *> ("extractInterpreter")->setText (format == "7z" ? perl : python);
+    window.findChild<QLineEdit *> ("extractInput")->setText (QDir (fixtures).filePath ("synthetic." + format));
+    const QString hashfile = workspace.filePath ("extracted.hashes");
+    window.findChild<QLineEdit *> ("extractOutput")->setText (hashfile);
+    window.findChild<QPushButton *> ("extractStart")->click ();
+    QTRY_VERIFY_WITH_TIMEOUT (window.findChild<QPushButton *> ("extractStart")->isEnabled (), 180000);
+    QVERIFY2 (window.findChild<QPushButton *> ("extractUse")->isEnabled (), qPrintable (window.findChild<QPlainTextEdit *> ("extractLog")->toPlainText ()));
+    auto *modes = window.findChild<QComboBox *> ("extractModes");
+    const int mode = format == "pdf" ? 10500 : format == "7z" ? 11600 : 9600;
+    QVERIFY (modes->findData (mode) >= 0); modes->setCurrentIndex (modes->findData (mode));
+    window.findChild<QPushButton *> ("extractUse")->click ();
+    QCOMPARE (window.form_job ().hashes, hashfile); QCOMPARE (window.form_job ().hash_mode, mode);
+    Job j = job (); j.binary = binary; j.hashes = hashfile; j.hash_mode = mode;
+    j.dictionary = QDir (fixtures).filePath ("dictionary.txt"); j.device_type = 1; j.workload = 1; j.force = true;
+    QVERIFY (QDir ().mkpath (j.directory (workspace.path ())));
+    Runner runner; QSignalSpy done (&runner, &Runner::finished);
+    QVERIFY (runner.start (binary, j.arguments (workspace.path ()), QFileInfo (binary).absolutePath ()));
+    QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 120000); QCOMPARE (done[0][0].toInt (), 0);
+    QFile result (j.directory (workspace.path ()) + "/results.txt"); QVERIFY (result.open (QIODevice::ReadOnly));
+    QVERIFY (result.readAll ().contains (QByteArray ("gui-fixture-only").toHex ()));
+    const QString screenshot = qEnvironmentVariable ("GUI_SCREENSHOT");
+    if (!screenshot.isEmpty ())
+    {
+      window.findChild<QListWidget *> ("navigation")->setCurrentRow (3);
+      window.findChild<QTabWidget *> ("converterTabs")->setCurrentIndex (1); QCoreApplication::processEvents ();
+      QVERIFY (window.grab ().save (screenshot + "-extract-" + format + ".png"));
+    }
   }
 
   void real_hashcat_dictionary ()
@@ -270,6 +370,25 @@ private slots:
     if (attack == 3) j.mask = mask_file ? file ("literal.hcmask", "test\n") : QString ("tes?l");
     if (attack == 6) { j.dictionary = file ("left.dict", "te\n"); j.mask = "st"; }
     if (attack == 7) { j.dictionary = file ("right.dict", "st\n"); j.mask = "te"; }
+    if (attack == 4 || attack == 5 || attack == 8 || attack == 12)
+    {
+      QProcess version; version.start (binary, {"--version"}); QVERIFY (version.waitForFinished (10000));
+      if (!version.readAllStandardOutput ().trimmed ().startsWith ("v8.")) QSKIP ("New feed modes require Hashcat 8");
+    }
+    if (attack == 4)
+    {
+      j.advanced["pcfgRulesets"] = QJsonArray {"hints"};
+      j.advanced["pcfgExtraSettings"] = QJsonArray {"hintwords=test"};
+      j.advanced["pcfgMask"] = "test"; j.advanced["pcfgThreads"] = "1"; j.advanced["pcfgKbits"] = "16";
+    }
+    if (attack == 5)
+    {
+      j.dictionary = file ("table words.txt", "t3st\n");
+      j.advanced["tableFiles"] = QJsonArray {file ("substitutions.table", "3\te\n")};
+    }
+    if (attack == 8) { j.advanced["feedName"] = "wordlist"; j.advanced["feedArguments"] = QJsonArray {j.dictionary}; }
+    if (attack == 12) { j.dictionary = file ("hybrid left.txt", "te\n"); j.dictionary2 = file ("hybrid right.txt", "st\n"); j.mask = "?w?q"; }
+    QVERIFY2 (j.validate ().isEmpty (), qPrintable (j.validate ()));
     const QString directory = j.directory (temp.path ()); QVERIFY (QDir ().mkpath (directory));
     Runner runner; QSignalSpy done (&runner, &Runner::finished);
     QStringList log;

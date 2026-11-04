@@ -4,6 +4,11 @@
  */
 #include "window.h"
 #include "lang.h"
+#include "pathlist.h"
+#include "advancedform.h"
+#include "commandbuilder.h"
+#include "hashcatinfoparser.h"
+#include "telemetry.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -135,7 +140,7 @@ QStringList lines (const QString &text)
 }
 
 Window::Window (const QString &data_directory, QWidget *parent)
-  : QMainWindow (parent), root (data_directory), runner (this), converter (this)
+  : QMainWindow (parent), root (data_directory), runner (this), converter (this), extractor (this)
 {
   QDir ().mkpath (root);
   setWindowTitle ("Hashcat Desktop");
@@ -166,7 +171,19 @@ Window::Window (const QString &data_directory, QWidget *parent)
   {
     probe_timer.stop ();
     probe_output += probe.readAllStandardOutput ();
-    if (probe_modes && (code == 0))
+    if (probe.arguments ().contains ("--machine-readable"))
+    {
+      QMap<quint32, QString> modes;
+      if (code == 0 && HashcatInfoParser::parseExampleHashes (QString::fromUtf8 (probe_output), modes))
+      {
+        auto *combo = get<QComboBox> ("hashMode");
+        const QString previous = combo->currentText ();
+        combo->clear ();
+        for (auto it = modes.cbegin (); it != modes.cend (); ++it) combo->addItem (it.value (), it.key ());
+        combo->setEditText (previous);
+      }
+    }
+    else if (probe_modes && (code == 0))
     {
       help_text = QString::fromUtf8 (probe_output);
       modern_restore = help_text.contains ("--restore-position");
@@ -181,6 +198,10 @@ Window::Window (const QString &data_directory, QWidget *parent)
         combo->setEditText (previous);
       }
       statusBar ()->showMessage (t ("Hashcat help and modes loaded.", "Справка и типы хешей Hashcat загружены."), 8000);
+      if (pending_restore < 0) QTimer::singleShot (0, this, [this]
+      {
+        if (!runner.busy ()) run_probe ({"--example-hashes", "--machine-readable"});
+      });
     }
     else
     {
@@ -216,29 +237,29 @@ Window::Window (const QString &data_directory, QWidget *parent)
 void Window::build ()
 {
   setStyleSheet (R"(
-    QMainWindow, QWidget { background:#101722; color:#e4eaf3; font-size:13px; }
+    QMainWindow, QWidget { background:#080c19; color:#e4eaf3; font-size:13px; }
     QLabel[heading="true"] { font-size:25px; font-weight:600; color:#ffffff; }
-    QLabel[metric="true"] { font-size:24px; font-weight:600; color:#53ddc1; padding:10px; background:#192535; border-radius:7px; }
-    QLineEdit, QSpinBox, QComboBox, QPlainTextEdit, QTextBrowser { background:#192331; border:1px solid #334359; border-radius:5px; padding:7px; selection-background-color:#286c80; }
-    QLineEdit:focus, QPlainTextEdit:focus { border:1px solid #53ddc1; }
-    QPushButton { background:#243448; border:1px solid #3a506a; border-radius:5px; padding:8px 13px; }
-    QPushButton:hover { background:#304962; }
-    QPushButton[primary="true"] { background:#29b89d; color:#081a1b; font-weight:600; border:0; }
+    QLabel[metric="true"] { font-size:24px; font-weight:600; color:#a5b4fc; padding:10px; background:#111a2c; border-radius:7px; }
+    QLineEdit, QSpinBox, QComboBox, QPlainTextEdit, QTextBrowser { background:#111a2c; border:1px solid #334359; border-radius:5px; padding:7px; selection-background-color:#4f46a5; }
+    QLineEdit:focus, QPlainTextEdit:focus { border:1px solid #a5b4fc; }
+    QPushButton { background:#1c2540; border:1px solid #3a506a; border-radius:5px; padding:8px 13px; }
+    QPushButton:hover { background:#303d62; }
+    QPushButton[primary="true"] { background:#818cf8; color:#080c19; font-weight:600; border:0; }
     QPushButton:disabled { color:#6a7b90; background:#18212e; border-color:#283345; }
-    QListWidget#navigation { background:#131e2c; border:0; font-size:14px; padding:10px; }
+    QListWidget#navigation { background:#070b18; border:0; font-size:14px; padding:10px; }
     QListWidget#navigation::item { padding:14px 10px; margin:3px; border-radius:5px; }
-    QListWidget#navigation::item:selected { background:#233e4a; color:#63e5c8; }
-    QTableWidget { background:#151f2c; alternate-background-color:#1b2737; border:1px solid #2b3b50; gridline-color:#28384b; }
+    QListWidget#navigation::item:selected { background:#24204e; color:#a5b4fc; }
+    QTableWidget { background:#0b1122; alternate-background-color:#1b2737; border:1px solid #2b3b50; gridline-color:#28384b; }
     QHeaderView::section { background:#243246; padding:8px; border:0; font-weight:600; }
     QTableWidget::item:selected { background:#285766; }
     QTabWidget::pane { border:1px solid #2b3b50; }
     QTabBar::tab { background:#182434; padding:9px 16px; }
     QTabBar::tab:selected { background:#294558; color:#6ae8cd; }
     QProgressBar { background:#1c2b3c; border:0; border-radius:5px; min-height:20px; text-align:center; }
-    QProgressBar::chunk { background:#238f81; border-radius:5px; }
+    QProgressBar::chunk { background:#6366f1; border-radius:5px; }
     QGroupBox { border:1px solid #334359; border-radius:6px; margin-top:13px; padding-top:14px; }
     QGroupBox::title { subcontrol-origin:margin; left:12px; padding:0 5px; }
-    QScrollArea { border:0; } QToolTip { background:#e4eaf3; color:#101722; padding:5px; }
+    QScrollArea { border:0; } QToolTip { background:#e4eaf3; color:#080c19; padding:5px; }
   )");
   auto *container = new QWidget;
   auto *outer = new QVBoxLayout (container);
@@ -246,7 +267,7 @@ void Window::build ()
   auto *header = new QHBoxLayout;
   header->setContentsMargins (22, 14, 22, 14);
   auto *brand = new QLabel ("HC  /  HASHCAT DESKTOP");
-  brand->setStyleSheet ("font-size:18px;font-weight:700;color:#63e5c8");
+  brand->setStyleSheet ("font-size:18px;font-weight:700;color:#a5b4fc");
   header->addWidget (brand);
   header->addStretch ();
   header->addWidget (label ("Engine", "Движок"));
@@ -330,6 +351,8 @@ QWidget *Window::dashboard ()
   auto *progress = new QProgressBar;
   progress->setObjectName ("progress"); progress->setRange (0, 1000); progress->setValue (0);
   layout->addWidget (progress);
+  auto *telemetry = new Telemetry; telemetry->setObjectName ("telemetry");
+  layout->addWidget (telemetry);
   auto *table = new QTableWidget (0, 4);
   table->setObjectName ("jobs"); table->setSelectionBehavior (QAbstractItemView::SelectRows);
   table->setSelectionMode (QAbstractItemView::SingleSelection); table->setEditTriggers (QAbstractItemView::NoEditTriggers);
@@ -409,7 +432,8 @@ QWidget *Window::dashboard ()
     }
     if (out.commit () == false) fail (out.errorString ());
   });
-  return widget;
+  auto *scroll = new QScrollArea; scroll->setWidgetResizable (true); scroll->setWidget (widget);
+  return scroll;
 }
 
 QWidget *Window::editor ()
@@ -430,14 +454,20 @@ QWidget *Window::editor ()
   choice (attack, 0, "0 · Dictionary", "0 · Словарь"); choice (attack, 1, "1 · Combinator", "1 · Комбинация словарей");
   choice (attack, 3, "3 · Mask", "3 · Маска"); choice (attack, 6, "6 · Dictionary + mask", "6 · Словарь + маска");
   choice (attack, 7, "7 · Mask + dictionary", "7 · Маска + словарь"); choice (attack, 9, "9 · Association", "9 · Ассоциация");
+  choice (attack, 4, "4 · PCFG (Hashcat 8)", "4 · PCFG (Hashcat 8)");
+  choice (attack, 5, "5 · Table (Hashcat 8)", "5 · Таблица (Hashcat 8)");
+  choice (attack, 8, "8 · Generic feed (Hashcat 8)", "8 · Генератор (Hashcat 8)");
+  choice (attack, 12, "12 · Word-position hybrid (Hashcat 8)", "12 · Гибрид с позицией слова (Hashcat 8)");
   row (form, "Attack", "Способ подбора", attack);
-  row (form, "Dictionary", "Словарь", path_field ("dictionary"));
-  row (form, "Second dictionary", "Второй словарь", path_field ("dictionary2"));
+  auto *wordlists = new PathList (true); wordlists->setObjectName ("wordlists");
+  row (form, "Dictionaries / folders (checked rows, in order)", "Словари / каталоги (отмеченные строки по порядку)", wordlists);
+  connect (wordlists, &PathList::changed, this, &Window::refresh_form);
   row (form, "Mask or .hcmask file", "Маска или файл .hcmask", path_field ("mask"));
   auto *hint = label ("?l lower · ?u upper · ?d digit · ?s symbol · ?a all · ?? literal ?. Example: ?u?l?l?l?d?d", "?l строчные · ?u прописные · ?d цифры · ?s знаки · ?a все · ?? знак ?. Пример: ?u?l?l?l?d?d");
   form->addRow (hint);
-  auto *rules = new QPlainTextEdit; rules->setObjectName ("rules"); rules->setMaximumHeight (65);
-  row (form, "Rule files, one path per line", "Файлы правил, путь на строку", rules);
+  auto *rules = new PathList (false); rules->setObjectName ("rules");
+  row (form, "Rule files (checked rows)", "Файлы правил (отмеченные строки)", rules);
+  connect (rules, &PathList::changed, this, &Window::refresh_form);
   auto *sets = new QWidget; auto *sets_layout = new QHBoxLayout (sets); sets_layout->setContentsMargins (0, 0, 0, 0);
   for (int i = 1; i <= 4; ++i)
   {
@@ -462,6 +492,10 @@ QWidget *Window::editor ()
   form->addRow (check ("optimized", "Optimized kernels (-O): shorter maximum passwords", "Оптимизированные ядра (-O): ограничение длины пароля"));
   form->addRow (check ("username", "Input contains username:hash", "Входной файл содержит имя:хеш"));
   form->addRow (check ("force", "Ignore backend warnings (--force)", "Игнорировать предупреждения движка (--force)"));
+  auto *advanced = new AdvancedForm; advanced->setObjectName ("advanced");
+  form->addRow (label ("Extended options and Hashcat 8 feeds", "Расширенные параметры и генераторы Hashcat 8"));
+  form->addRow (advanced);
+  connect (advanced, &AdvancedForm::changed, this, &Window::refresh_form);
   auto *extra = new QPlainTextEdit; extra->setObjectName ("extra"); extra->setMaximumHeight (65);
   row (form, "Additional options (one per line)", "Доп. параметры (по одному на строку)", extra);
   form->addRow (label ("For every CLI command, unusual attacks and unrestricted options, use the CLI page. Parameters here use --name=value.", "Все команды CLI, другие режимы и произвольные параметры доступны на вкладке «Команды». Здесь параметры задаются как --имя=значение."));
@@ -544,6 +578,88 @@ QWidget *Window::console_page ()
 
 QWidget *Window::converter_page ()
 {
+  auto *tabs = new QTabWidget; tabs->setObjectName ("converterTabs");
+  tabs->addTab (capture_page (), ""); tabs->addTab (extractor_page (), "");
+  return tabs;
+}
+
+QWidget *Window::extractor_page ()
+{
+  QVBoxLayout *layout;
+  auto *widget = page (&layout, "File to hash", "Из файла в хеш");
+  layout->addWidget (label ("Local extractor catalog from Hashcat-Reactor. Install the appropriate John Jumbo tool and its dependencies. Availability and Hashcat compatibility depend on the exact format/version; a catalog entry is not a guarantee of support.", "Каталог локальных конвертеров из Hashcat-Reactor. Установите нужную утилиту John Jumbo и её зависимости. Поддержка зависит от формата и версии; наличие в каталоге не гарантирует совместимость с Hashcat."));
+  auto *form = new QFormLayout; layout->addLayout (form);
+  auto *kind = new QComboBox; kind->setObjectName ("extractKind"); kind->setEditable (false);
+  const auto catalog = Extractor::catalog ();
+  for (auto it = catalog.begin (); it != catalog.end (); ++it) kind->addItem (it.key () + " · " + it.value ().toObject ()["name"].toString (), it.key ());
+  row (form, "Format / extractor", "Формат / конвертер", kind);
+  row (form, "John Jumbo run directory", "Каталог run John Jumbo", path_field ("johnDirectory", true));
+  row (form, "Extractor executable or script", "Исполняемый файл или скрипт", path_field ("extractTool"));
+  row (form, "Python/Perl (empty = PATH)", "Python/Perl (пусто = PATH)", path_field ("extractInterpreter"));
+  auto resolve = [this, kind, catalog]
+  {
+    const auto item = catalog[kind->currentData ().toString ()].toObject ();
+    const QString name = item["name"].toString (), type = item["kind"].toString ();
+    QStringList names;
+    if (type == "python") names << name + ".py";
+    if (type == "perl") names << name + ".pl";
+#ifdef Q_OS_WIN
+    names << name + ".exe";
+#endif
+    names << name << name + ".py" << name + ".pl";
+    const QString directory = get<QLineEdit> ("johnDirectory")->text ();
+    QString found;
+    for (const auto &candidate : names)
+    {
+      const QString path = QDir (directory).filePath (candidate);
+      if (QFileInfo (path).isFile ()) { found = QFileInfo (path).absoluteFilePath (); break; }
+    }
+    get<QLineEdit> ("extractTool")->setText (found);
+  };
+  connect (kind, &QComboBox::currentIndexChanged, this, resolve);
+  connect (widget->findChild<QLineEdit *> ("johnDirectory"), &QLineEdit::textChanged, this, resolve);
+  row (form, "Input file", "Исходный файл", path_field ("extractInput"));
+  row (form, "New hash file", "Новый файл хешей", path_field ("extractOutput", false, true));
+  auto *arguments = new QPlainTextEdit; arguments->setObjectName ("extractArguments"); arguments->setMaximumHeight (65);
+  row (form, "Tool arguments, one per line (input is appended)", "Аргументы утилиты по одному на строку (файл добавится в конце)", arguments);
+  auto *actions = new QHBoxLayout; layout->addLayout (actions);
+  auto *start = button ("extractStart", "Extract and identify", "Извлечь и определить"); start->setProperty ("primary", true);
+  auto *cancel = button ("extractCancel", "Cancel", "Отмена"); cancel->setEnabled (false);
+  auto *modes = new QComboBox; modes->setObjectName ("extractModes");
+  auto *use = button ("extractUse", "Use in new task", "В новую задачу"); use->setEnabled (false);
+  actions->addWidget (start); actions->addWidget (cancel); actions->addWidget (modes, 1); actions->addWidget (use);
+  layout->addWidget (output ("extractLog"), 1);
+  connect (start, &QPushButton::clicked, this, [this, start, cancel, use, modes, arguments]
+  {
+    Extraction request;
+    request.input = get<QLineEdit> ("extractInput")->text (); request.output = get<QLineEdit> ("extractOutput")->text ();
+    request.tool = get<QLineEdit> ("extractTool")->text (); request.interpreter = get<QLineEdit> ("extractInterpreter")->text ();
+    request.hashcat = get<QLineEdit> ("binary")->text (); request.arguments = arguments->toPlainText ().split ('\n', Qt::SkipEmptyParts);
+    use->setEnabled (false); modes->clear (); get<QPlainTextEdit> ("extractLog")->clear ();
+    start->setEnabled (false); cancel->setEnabled (true);
+    if (!extractor.start (request)) { start->setEnabled (true); cancel->setEnabled (false); }
+    save ();
+  });
+  connect (cancel, &QPushButton::clicked, &extractor, &Extractor::cancel);
+  connect (&extractor, &Extractor::log, this, [this] (const QString &text) { get<QPlainTextEdit> ("extractLog")->appendPlainText (text); });
+  connect (&extractor, &Extractor::finished, this, [this, start, cancel, use, modes] (bool success, const QString &path, const QList<int> &types)
+  {
+    start->setEnabled (true); cancel->setEnabled (false); use->setEnabled (success);
+    use->setProperty ("outputPath", path);
+    for (const int type : types) modes->addItem (QString::number (type), type);
+    if (success) get<QPlainTextEdit> ("extractLog")->appendPlainText (t ("Saved. Select the matching hash mode before importing.", "Сохранено. Перед импортом выберите подходящий тип хеша."));
+  });
+  connect (use, &QPushButton::clicked, this, [this, use, modes]
+  {
+    get<QLineEdit> ("hashFile")->setText (use->property ("outputPath").toString ());
+    get<QComboBox> ("hashMode")->setEditText (modes->currentData ().toString ());
+    get<QListWidget> ("navigation")->setCurrentRow (1);
+  });
+  auto *scroll = new QScrollArea; scroll->setWidgetResizable (true); scroll->setWidget (widget); return scroll;
+}
+
+QWidget *Window::capture_page ()
+{
   QVBoxLayout *layout;
   auto *widget = page (&layout, "Capture converter", "Конвертер захватов");
   layout->addWidget (label ("Offline extraction using hcxtools, the engine used by hashcat.net. PCAPNG · PCAP · CAP · .gz. Legacy HCCAPX · HCCAP · PMKID (.16800). No capture is uploaded.", "Локальное извлечение через hcxtools — движок конвертера hashcat.net. PCAPNG · PCAP · CAP · .gz. Старые HCCAPX · HCCAP · PMKID (.16800). Захваты никуда не отправляются."));
@@ -622,6 +738,11 @@ QWidget *Window::help_page ()
 
 void Window::retranslate ()
 {
+  for (auto *list : findChildren<PathList *> ()) list->retranslate ();
+  get<AdvancedForm> ("advanced")->retranslate ();
+  get<Telemetry> ("telemetry")->update ();
+  get<QTabWidget> ("converterTabs")->setTabText (0, t ("Wi-Fi / captures", "Wi-Fi / захваты"));
+  get<QTabWidget> ("converterTabs")->setTabText (1, t ("Archives / documents / other files", "Архивы / документы / другие файлы"));
   const char *property = russian () ? "ru" : "en";
   for (auto *object : findChildren<QObject *> ())
   {
@@ -649,16 +770,20 @@ void Window::retranslate ()
   get<QTabWidget> ("helpTabs")->setTabText (0, t ("Getting started", "Как пользоваться"));
   get<QTabWidget> ("helpTabs")->setTabText (1, t ("Full CLI reference", "Полная справка CLI"));
   get<QTextBrowser> ("guide")->setHtml (t (
-    "<h2>From a file to a repeatable task</h2><ol><li>Select hashcat.exe (Windows) or hashcat (Linux) at the top. Keep its complete distribution, including modules and OpenCL files. Install the GPU vendor's compute driver; CPU testing can use PoCL on Linux.</li><li>Click <b>Load modes</b> to read the installed engine's complete help and supported hash types. The number field also accepts any mode directly.</li><li>Open <b>New task</b>, choose the input hashes and the correct mode. Choose a dictionary, two dictionaries, a mask, or a hybrid. Association mode requires a matching dictionary line for each hash.</li><li>Add the task to the queue or start it immediately. Only one task runs at a time. Queue processing continues after success or exhaustion, but stops on errors and manual interruptions.</li><li>Watch speed, recovered count, device telemetry and estimated finish. Pause/resume waits for real engine status. A checkpoint stop waits until Hashcat can save its state. Stop allows eight seconds for a graceful exit before killing an unresponsive process.</li></ol>"
+    "<h2>From a file to a repeatable task</h2><ol><li>Select hashcat.exe (Windows) or hashcat (Linux) at the top. Keep its complete distribution, including modules and OpenCL files. Install the GPU vendor's compute driver; CPU testing can use PoCL on Linux.</li><li>Click <b>Load modes</b> to read the installed engine's complete help and supported hash types. The number field also accepts any mode directly.</li><li>Open <b>New task</b>, choose the input hashes and the correct mode. The forms support all ten Hashcat 8 modes. Select and reorder checked dictionaries/rules. Profiles keep unchecked rows. Modes 4/5/8/12 require Hashcat 8; their settings are in the extended tabs. Mode 12 needs one ?w and optionally one ?q after it, with two dictionaries; increment is not supported. Association mode requires a matching dictionary line for each hash.</li><li>Add the task to the queue or start it immediately. Only one task runs at a time. Queue processing continues after success or exhaustion, but stops on errors and manual interruptions.</li><li>Watch speed, recovered count, device telemetry and estimated finish. Pause/resume waits for real engine status. A checkpoint stop waits until Hashcat can save its state. Stop allows eight seconds for a graceful exit before killing an unresponsive process.</li></ol>"
     "<h3>Sessions and results</h3><p>Each task has its own restore file, potfile and results under the application data directory. Restore uses the same task settings and files. Hashcat 8 uses --restore-position; earlier versions use --restore. Load the engine help before restoring. Interrupted tasks never restart automatically on app launch. Copy a task to the form to change its settings and create a new task. Removing a queue entry preserves its files.</p><p>The results table displays at most 2,000 entries. Export copies the complete hash:hex file. Hex preserves arbitrary bytes and delimiters; UTF-8 display may show replacement characters for non-text passwords. Profiles and queue metadata contain paths and settings. Logs stay in memory and are bounded. Files are stored on your computer.</p>"
     "<h3>Every CLI command</h3><p>The <b>Commands</b> page accepts every argument supported by your engine, including modes 4/5/8/12, rules, devices, benchmarks, --identify, --show, --left, --keyspace, --stdout, brain and new options. Enter one argument per line, with no surrounding shell quotes, or a JSON string array. Paths with spaces are a single argument. Shell pipes and redirection are not interpreted. Use Hashcat's file options. Interactive prompts accept text and Enter. Read the actual installed help in the second tab and search for option names.</p><p>CLI mode runs exactly your arguments: session files, output files and destructive flags such as --remove remain under your control. It does not add the managed queue's status/output options. Use <b>From task form</b> for an editable starting point.</p>"
-    "<h3>Preparing hashes</h3><p>The official online converter accepts PCAPNG, PCAP and CAP for WPA/WPA2 mode 22000. This app uses the same hcxpcapngtool locally, adds gzip and legacy HCCAP/HCCAPX/16800 conversion, and can extract EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) and TACACS+ (16100). A capture without the required exchange produces no hashes. Windows uses hcxtools inside WSL; Linux runs it directly.</p><p>Encrypted ZIP/7z/RAR archives, PDF/Office documents, KeePass databases and disk containers also require format-specific extraction. They are NOT accepted by the website's Wi-Fi converter. Use a compatible 2hashcat/2john extractor for the exact format, then select its resulting hash file here. A file's extension alone cannot determine its hash mode. Raw MD5/SHA/NTLM text needs no packet conversion.</p>"
+    "<h3>Preparing hashes</h3><p>The official online converter accepts PCAPNG, PCAP and CAP for WPA/WPA2 mode 22000. This app uses the same hcxpcapngtool locally, adds gzip and legacy HCCAP/HCCAPX/16800 conversion, and can extract EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) and TACACS+ (16100). A capture without the required exchange produces no hashes. Windows uses hcxtools inside WSL; Linux runs it directly.</p><p>Encrypted ZIP/7z/RAR archives, PDF/Office documents, KeePass databases and disk containers also require format-specific extraction. They are NOT accepted by the website's Wi-Fi converter. Open the second converter tab and select an installed John Jumbo extractor, its input file, a new output path and, for scripts, Python or Perl. Install the tool dependencies. The app removes filename metadata from $...$ records, then asks Hashcat to identify compatible modes. Only recognized output is saved. If several modes match, select the correct one before importing. The catalog has 78 entries; support depends on the exact format and tool versions. Binary outputs and formats without $...$ records need external preparation. A file's extension alone cannot determine its hash mode. Raw MD5/SHA/NTLM text needs no packet conversion.</p>"
     "<h3>Troubleshooting</h3><p>No devices: inspect devices and install the compute runtime. Token/line-length error: check hash type and whether extraction is needed. Out of memory: reduce workload or select a different device. Unsupported option: read the installed engine's help. GPU temperature depends on the driver exposing telemetry.</p><p><a href='https://hashcat.net/wiki/'>Hashcat wiki</a> · <a href='https://hashcat.net/cap2hashcat/'>Official converter</a> · <a href='https://github.com/ZerBea/hcxtools'>hcxtools</a></p>",
-    "<h2>От файла к повторяемой задаче</h2><ol><li>Вверху выберите hashcat.exe (Windows) или hashcat (Linux). Сохраните весь комплект движка, включая modules и OpenCL. Установите вычислительный драйвер производителя GPU; для тестов CPU в Linux подходит PoCL.</li><li>Нажмите <b>Загрузить типы</b>: приложение прочитает справку и типы хешей установленного движка. Номер типа можно ввести вручную.</li><li>Откройте <b>Новую задачу</b>, выберите файл хешей и правильный тип. Задайте словарь, два словаря, маску или гибрид. В режиме ассоциации каждой строке хешей нужна соответствующая строка словаря.</li><li>Добавьте задачу в очередь или запустите сразу. Одновременно выполняется одна задача. Очередь продолжается после успеха или исчерпания кандидатов, но останавливается при ошибке и ручном прерывании.</li><li>Следите за скоростью, числом результатов, устройствами и ожидаемым завершением. Пауза и продолжение подтверждаются статусом движка. Остановка на контрольной точке ждёт сохранения состояния. Обычная остановка даёт процессу восемь секунд, затем завершает зависший процесс принудительно.</li></ol>"
+    "<h2>От файла к повторяемой задаче</h2><ol><li>Вверху выберите hashcat.exe (Windows) или hashcat (Linux). Сохраните весь комплект движка, включая modules и OpenCL. Установите вычислительный драйвер производителя GPU; для тестов CPU в Linux подходит PoCL.</li><li>Нажмите <b>Загрузить типы</b>: приложение прочитает справку и типы хешей установленного движка. Номер типа можно ввести вручную.</li><li>Откройте <b>Новую задачу</b>, выберите файл хешей и правильный тип. Формы поддерживают десять режимов Hashcat 8. Отметьте словари и правила, задайте порядок. Профили сохраняют и неотмеченные строки. Режимы 4/5/8/12 требуют Hashcat 8; параметры находятся на расширенных вкладках. В режиме 12 нужен один ?w и, для второго словаря, один ?q после него; наращивание длины недоступно. В режиме ассоциации каждой строке хешей нужна соответствующая строка словаря.</li><li>Добавьте задачу в очередь или запустите сразу. Одновременно выполняется одна задача. Очередь продолжается после успеха или исчерпания кандидатов, но останавливается при ошибке и ручном прерывании.</li><li>Следите за скоростью, числом результатов, устройствами и ожидаемым завершением. Пауза и продолжение подтверждаются статусом движка. Остановка на контрольной точке ждёт сохранения состояния. Обычная остановка даёт процессу восемь секунд, затем завершает зависший процесс принудительно.</li></ol>"
     "<h3>Сессии и результаты</h3><p>У каждой задачи свои restore, potfile и результаты в каталоге данных приложения. Восстановление использует прежние настройки и входные файлы. В Hashcat 8 применяется --restore-position, в старых версиях --restore. Перед восстановлением загрузите справку движка. После запуска приложения прерванные задачи сами не возобновляются. Для изменения задачи скопируйте её в форму и создайте новую. Удаление строки очереди сохраняет её файлы.</p><p>Таблица показывает до 2000 результатов, экспорт сохраняет полный файл хеш:hex. Hex сохраняет любые байты и разделители; отображение UTF-8 может заменять нетекстовые байты. Профили и очередь содержат пути и настройки. Журналы ограничены по объёму и остаются в памяти. Файлы хранятся на вашем компьютере.</p>"
     "<h3>Все команды CLI</h3><p>Вкладка <b>Команды</b> принимает любые аргументы вашей версии: режимы 4/5/8/12, правила, устройства, benchmark, --identify, --show, --left, --keyspace, --stdout, brain и новые опции. Один аргумент на строку, без кавычек оболочки, либо JSON-массив строк. Путь с пробелами — один аргумент. Конвейеры и перенаправления оболочки не выполняются; используйте файловые параметры Hashcat. На интерактивные запросы можно отвечать текстом и Enter. На второй вкладке справки доступен поиск по выводу установленного движка.</p><p>Этот режим запускает ровно заданные аргументы: сессии, файлы результатов и изменяющие входные данные флаги вроде --remove задаёте вы. Параметры управляемой очереди автоматически не добавляются. Кнопка <b>Из формы задачи</b> даёт готовую основу для редактирования.</p>"
-    "<h3>Подготовка хешей</h3><p>Онлайн-конвертер Hashcat принимает PCAPNG, PCAP и CAP для WPA/WPA2, режим 22000. Приложение использует тот же hcxpcapngtool локально, добавляет gzip и старые HCCAP/HCCAPX/16800, а также извлечение EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) и TACACS+ (16100). Захват без нужного обмена не даст хешей. В Windows hcxtools запускается внутри WSL, в Linux — напрямую.</p><p>Зашифрованным архивам ZIP/7z/RAR, документам PDF/Office, базам KeePass и дисковым контейнерам тоже нужно извлечение данных. Wi-Fi-конвертер сайта эти форматы НЕ принимает. Используйте совместимый 2hashcat/2john для нужного формата, затем выберите полученный файл хешей здесь. Расширение файла само по себе не определяет тип хеша. Текстовые MD5/SHA/NTLM преобразования захватов не требуют.</p>"
+    "<h3>Подготовка хешей</h3><p>Онлайн-конвертер Hashcat принимает PCAPNG, PCAP и CAP для WPA/WPA2, режим 22000. Приложение использует тот же hcxpcapngtool локально, добавляет gzip и старые HCCAP/HCCAPX/16800, а также извлечение EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) и TACACS+ (16100). Захват без нужного обмена не даст хешей. В Windows hcxtools запускается внутри WSL, в Linux — напрямую.</p><p>Зашифрованным архивам ZIP/7z/RAR, документам PDF/Office, базам KeePass и дисковым контейнерам тоже нужно извлечение данных. Wi-Fi-конвертер сайта эти форматы НЕ принимает. Откройте вторую вкладку конвертера, выберите установленную утилиту John Jumbo, исходный файл, новый путь результата и, для скрипта, Python или Perl. Установите зависимости утилиты. Приложение удаляет метаданные имени из записей $...$ и проверяет их через Hashcat --identify. Сохраняется только распознанный результат. Если типов несколько, выберите нужный перед импортом. В каталоге 78 записей; поддержка зависит от точного формата и версий. Бинарный вывод и форматы без $...$ требуют отдельной подготовки. Расширение файла само по себе не определяет тип хеша. Текстовые MD5/SHA/NTLM преобразования захватов не требуют.</p>"
     "<h3>Если возникла проблема</h3><p>Нет устройств: проверьте их список и вычислительный драйвер. Ошибка длины строки: проверьте тип хеша и необходимость извлечения. Не хватает памяти: уменьшите нагрузку или смените устройство. Неизвестная опция: откройте справку установленной версии. Температура GPU доступна, только если её предоставляет драйвер.</p><p><a href='https://hashcat.net/wiki/'>Wiki Hashcat</a> · <a href='https://hashcat.net/cap2hashcat/'>Официальный конвертер</a> · <a href='https://github.com/ZerBea/hcxtools'>hcxtools</a></p>"));
+  get<QTextBrowser> ("guide")->append (t (
+    "<h3>Authors and licenses</h3><p>Combined GUI: GPL-3.0-or-later. Command builder, validators and parser: <a href='https://github.com/rgroesslinger/hashcat-gui'>hashcat-gui, Rainer Groesslinger</a>. Dashboard and extractor catalog: <a href='https://github.com/jjsvs/Hashcat-Reactor'>Hashcat-Reactor, copyright 2025 rabbit, MIT</a>. See THIRD_PARTY.md and the included corresponding source archive. Hashcat remains a separate MIT program.</p>",
+    "<h3>Авторы и лицензии</h3><p>Объединённый GUI: GPL-3.0-or-later. Конструктор команд, проверки и парсер: <a href='https://github.com/rgroesslinger/hashcat-gui'>hashcat-gui, Rainer Groesslinger</a>. Панель и каталог конвертеров: <a href='https://github.com/jjsvs/Hashcat-Reactor'>Hashcat-Reactor, copyright 2025 rabbit, MIT</a>. См. THIRD_PARTY.md и архив исходников в комплекте. Hashcat остаётся отдельной программой под MIT.</p>"));
+  get<QTextBrowser> ("guide")->moveCursor (QTextCursor::Start);
   refresh_jobs ();
   refresh_form ();
 }
@@ -670,8 +795,10 @@ Job Window::form_job () const
   job.name = get<QLineEdit> ("jobName")->text ().trimmed ();
   job.binary = QFileInfo (get<QLineEdit> ("binary")->text ()).absoluteFilePath ();
   job.hashes = get<QLineEdit> ("hashFile")->text ();
-  job.dictionary = get<QLineEdit> ("dictionary")->text ();
-  job.dictionary2 = get<QLineEdit> ("dictionary2")->text ();
+  job.wordlists = get<PathList> ("wordlists")->checked ();
+  job.advanced = get<AdvancedForm> ("advanced")->values ();
+  job.editor_state["wordlists"] = get<PathList> ("wordlists")->snapshot ();
+  job.editor_state["rules"] = get<PathList> ("rules")->snapshot ();
   job.mask = get<QLineEdit> ("mask")->text ();
   bool ok = false;
   job.hash_mode = get<QComboBox> ("hashMode")->currentText ().section ('|', 0, 0).trimmed ().toInt (&ok);
@@ -680,7 +807,7 @@ Job Window::form_job () const
   job.workload = get<QComboBox> ("workload")->currentData ().toInt ();
   job.device_type = get<QComboBox> ("deviceType")->currentData ().toInt ();
   job.devices = get<QLineEdit> ("devices")->text ().trimmed ();
-  job.rules = lines (get<QPlainTextEdit> ("rules")->toPlainText ());
+  job.rules = get<PathList> ("rules")->checked ();
   job.extra = lines (get<QPlainTextEdit> ("extra")->toPlainText ());
   for (int i = 0; i < 4; ++i) job.charsets[i] = get<QLineEdit> (qPrintable ("charset" + QString::number (i + 1)))->text ();
   job.temperature = get<QSpinBox> ("temperature")->value (); job.runtime = get<QSpinBox> ("runtime")->value ();
@@ -696,13 +823,21 @@ void Window::set_form (const Job &job)
   get<QLineEdit> ("jobName")->setText (job.name);
   if (job.binary.isEmpty () == false) get<QLineEdit> ("binary")->setText (job.binary);
   get<QLineEdit> ("hashFile")->setText (job.hashes);
-  get<QLineEdit> ("dictionary")->setText (job.dictionary); get<QLineEdit> ("dictionary2")->setText (job.dictionary2);
+  QStringList dictionaries = job.wordlists;
+  if (dictionaries.isEmpty ())
+  {
+    if (!job.dictionary.isEmpty ()) dictionaries << job.dictionary;
+    if (!job.dictionary2.isEmpty ()) dictionaries << job.dictionary2;
+  }
+  get<PathList> ("wordlists")->restore (job.editor_state["wordlists"].toArray (), dictionaries);
+  get<AdvancedForm> ("advanced")->set_values (job.advanced);
   get<QLineEdit> ("mask")->setText (job.mask); get<QLineEdit> ("devices")->setText (job.devices);
   get<QComboBox> ("hashMode")->setEditText (QString::number (job.hash_mode));
   get<QComboBox> ("attack")->setCurrentIndex (get<QComboBox> ("attack")->findData (job.attack));
   get<QComboBox> ("workload")->setCurrentIndex (get<QComboBox> ("workload")->findData (job.workload));
   get<QComboBox> ("deviceType")->setCurrentIndex (get<QComboBox> ("deviceType")->findData (job.device_type));
-  get<QPlainTextEdit> ("rules")->setPlainText (job.rules.join ('\n')); get<QPlainTextEdit> ("extra")->setPlainText (job.extra.join ('\n'));
+  get<PathList> ("rules")->restore (job.editor_state["rules"].toArray (), job.rules);
+  get<QPlainTextEdit> ("extra")->setPlainText (job.extra.join ('\n'));
   for (int i = 0; i < 4; ++i) get<QLineEdit> (qPrintable ("charset" + QString::number (i + 1)))->setText (job.charsets[i]);
   get<QSpinBox> ("temperature")->setValue (job.temperature); get<QSpinBox> ("runtime")->setValue (job.runtime);
   get<QSpinBox> ("minimum")->setValue (job.minimum); get<QSpinBox> ("maximum")->setValue (job.maximum);
@@ -716,11 +851,13 @@ void Window::refresh_form ()
 {
   if (loading || (get<QLabel> ("validation") == nullptr)) return;
   const Job job = form_job ();
-  const bool mask = (job.attack == 3) || (job.attack == 6) || (job.attack == 7);
-  get<QLineEdit> ("dictionary")->parentWidget ()->setEnabled (job.attack != 3);
-  get<QLineEdit> ("dictionary2")->parentWidget ()->setEnabled (job.attack == 1);
+  const auto attack = static_cast<AttackMode> (job.attack);
+  const bool mask = CommandBuilder::attackUsesMask (attack);
+  get<PathList> ("wordlists")->setEnabled (CommandBuilder::attackUsesWordlists (attack));
+  get<PathList> ("rules")->setEnabled (CommandBuilder::attackUsesRules (attack));
   get<QLineEdit> ("mask")->parentWidget ()->setEnabled (mask);
-  get<QCheckBox> ("increment")->parentWidget ()->setEnabled (mask);
+  get<QCheckBox> ("increment")->parentWidget ()->setEnabled (CommandBuilder::attackUsesIncrement (attack));
+  get<AdvancedForm> ("advanced")->set_mode (job.attack);
   get<QPlainTextEdit> ("preview")->setPlainText (display_command (job.binary, job.arguments (root)));
   get<QLabel> ("validation")->setText (job.validate ());
   get<QPushButton> ("addJob")->setEnabled (job.validate ().isEmpty ());
@@ -777,6 +914,7 @@ void Window::add_job (const bool launch)
   job.hashes = QFileInfo (job.hashes).absoluteFilePath ();
   if (job.dictionary.isEmpty () == false) job.dictionary = QFileInfo (job.dictionary).absoluteFilePath ();
   if (job.dictionary2.isEmpty () == false) job.dictionary2 = QFileInfo (job.dictionary2).absoluteFilePath ();
+  for (QString &path : job.wordlists) path = QFileInfo (path).absoluteFilePath ();
   if (QFileInfo (job.mask).isFile ()) job.mask = QFileInfo (job.mask).absoluteFilePath ();
   for (QString &rule : job.rules) rule = QFileInfo (rule).absoluteFilePath ();
   jobs.append (job);
@@ -812,6 +950,7 @@ void Window::start_job (const int index, const bool restore)
   if (save_json (job.directory (root) + "/job.json", job.json (), &save_error) == false) { fail (save_error); return; }
   active = index; expert = false; stop_requested = false; engine_status = 0; job.state = "running";
   get<QPlainTextEdit> ("log")->clear ();
+  get<Telemetry> ("telemetry")->clear ();
   get<QProgressBar> ("progress")->setValue (0);
   for (const char *name : {"speed", "recovered", "eta"}) get<QLabel> (name)->setText ("—");
   append_log (t ("Starting task: ", "Запуск задачи: ") + job.name);
@@ -875,6 +1014,7 @@ void Window::append_log (const QString &text)
 
 void Window::set_status (const QJsonObject &object)
 {
+  get<Telemetry> ("telemetry")->sample (object);
   engine_status = object["status"].toInt ();
   const QJsonArray progress = object["progress"].toArray ();
   if ((progress.size () == 2) && (progress[1].toDouble () > 0))
@@ -966,7 +1106,8 @@ void Window::save ()
   QJsonArray list;
   for (const Job &job : jobs) list.append (job.json ());
   const QJsonObject document {{"version", 1}, {"jobs", list}, {"language", qApp->property ("language").toString ()},
-    {"binary", get<QLineEdit> ("binary")->text ()}, {"hcx", get<QLineEdit> ("hcxDirectory")->text ()}, {"wsl", get<QCheckBox> ("useWsl")->isChecked ()}};
+    {"binary", get<QLineEdit> ("binary")->text ()}, {"hcx", get<QLineEdit> ("hcxDirectory")->text ()}, {"wsl", get<QCheckBox> ("useWsl")->isChecked ()},
+    {"john", get<QLineEdit> ("johnDirectory")->text ()}, {"interpreter", get<QLineEdit> ("extractInterpreter")->text ()}};
   QString error;
   if (save_json (QDir (root).filePath ("workspace.json"), document, &error) == false) statusBar ()->showMessage (error, 15000);
 }
@@ -993,6 +1134,8 @@ void Window::load ()
   get<QLineEdit> ("binary")->setText (binary);
   get<QLineEdit> ("jobName")->setText (t ("My task", "Моя задача"));
   get<QLineEdit> ("hcxDirectory")->setText (obj["hcx"].toString ());
+  get<QLineEdit> ("johnDirectory")->setText (obj["john"].toString ());
+  get<QLineEdit> ("extractInterpreter")->setText (obj["interpreter"].toString ());
 #ifdef Q_OS_WIN
   get<QCheckBox> ("useWsl")->setChecked (obj["wsl"].toBool (true));
 #endif
@@ -1010,13 +1153,13 @@ void Window::load ()
 
 void Window::closeEvent (QCloseEvent *event)
 {
-  if (runner.busy () || converter.busy ())
+  if (runner.busy () || converter.busy () || extractor.busy ())
   {
     const auto answer = QMessageBox::question (this, "Hashcat Desktop", t ("A process is running. Stop it and close? Use a checkpoint stop first if you need a fresh restore point.", "Процесс выполняется. Остановить его и закрыть? Если нужна свежая точка восстановления, сначала остановите на контрольной точке."));
     if (answer != QMessageBox::Yes) { event->ignore (); return; }
     stop_requested = true;
     if (active >= 0) jobs[active].state = "interrupted";
-    runner.kill (); converter.cancel ();
+    runner.kill (); converter.cancel (); extractor.cancel ();
   }
   if (probe.state () != QProcess::NotRunning) { probe.kill (); probe.waitForFinished (3000); }
   save ();

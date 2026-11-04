@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/jjsvs/Hashcat-Reactor",
+  "commit": "53261c1a2d3c7433d91ac05fb6d130dffd69eb0a",
+  "license": "MIT",
+  "source": "backend/server.js: JOHN_TOOLS; registry adapted to JSON. UI adaptations will preserve attribution."
+}

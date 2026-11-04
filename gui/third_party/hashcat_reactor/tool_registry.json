@@ -1,0 +1,314 @@
+{
+  "zip": {
+    "kind": "native",
+    "name": "zip2john"
+  },
+  "7z": {
+    "kind": "perl",
+    "name": "7z2john"
+  },
+  "rar": {
+    "kind": "native",
+    "name": "rar2john"
+  },
+  "dmg": {
+    "kind": "python",
+    "name": "dmg2john"
+  },
+  "office": {
+    "kind": "python",
+    "name": "office2john"
+  },
+  "pdf": {
+    "kind": "perl",
+    "name": "pdf2john"
+  },
+  "libreoffice": {
+    "kind": "python",
+    "name": "libreoffice2john"
+  },
+  "staroffice": {
+    "kind": "python",
+    "name": "staroffice2john"
+  },
+  "putty": {
+    "kind": "native",
+    "name": "putty2john"
+  },
+  "pfx": {
+    "kind": "python",
+    "name": "pfx2john"
+  },
+  "gpg": {
+    "kind": "native",
+    "name": "gpg2john"
+  },
+  "keepass": {
+    "kind": "native",
+    "name": "keepass2john"
+  },
+  "ssh": {
+    "kind": "python",
+    "name": "ssh2john"
+  },
+  "keychain": {
+    "kind": "python",
+    "name": "keychain2john"
+  },
+  "keyring": {
+    "kind": "python",
+    "name": "keyring2john"
+  },
+  "keystore": {
+    "kind": "python",
+    "name": "keystore2john"
+  },
+  "ethereum": {
+    "kind": "python",
+    "name": "ethereum2john"
+  },
+  "monero": {
+    "kind": "python",
+    "name": "monero2john"
+  },
+  "electrum": {
+    "kind": "python",
+    "name": "electrum2john"
+  },
+  "bitlocker": {
+    "kind": "native",
+    "name": "bitlocker2john"
+  },
+  "telegram": {
+    "kind": "python",
+    "name": "telegram2john"
+  },
+  "android": {
+    "kind": "python",
+    "name": "androidbackup2john"
+  },
+  "mozilla": {
+    "kind": "python",
+    "name": "mozilla2john"
+  },
+  "itunes": {
+    "kind": "perl",
+    "name": "itunes_backup2john"
+  },
+  "filezilla": {
+    "kind": "python",
+    "name": "filezilla2john"
+  },
+  "apex": {
+    "kind": "python",
+    "name": "apex2john"
+  },
+  "applenotes": {
+    "kind": "python",
+    "name": "applenotes2john"
+  },
+  "aruba": {
+    "kind": "python",
+    "name": "aruba2john"
+  },
+  "money": {
+    "kind": "python",
+    "name": "money2john"
+  },
+  "neo": {
+    "kind": "python",
+    "name": "neo2john"
+  },
+  "padlock": {
+    "kind": "python",
+    "name": "padlock2john"
+  },
+  "bitcoin": {
+    "kind": "python",
+    "name": "bitcoin2john"
+  },
+  "blockchain": {
+    "kind": "python",
+    "name": "blockchain2john"
+  },
+  "multibit": {
+    "kind": "python",
+    "name": "multibit2john"
+  },
+  "bitshares": {
+    "kind": "python",
+    "name": "bitshares2john"
+  },
+  "tezos": {
+    "kind": "python",
+    "name": "tezos2john"
+  },
+  "onepassword": {
+    "kind": "python",
+    "name": "1password2john"
+  },
+  "lastpass": {
+    "kind": "python",
+    "name": "lastpass2john"
+  },
+  "bitwarden": {
+    "kind": "python",
+    "name": "bitwarden2john"
+  },
+  "dashlane": {
+    "kind": "python",
+    "name": "dashlane2john"
+  },
+  "enpass": {
+    "kind": "python",
+    "name": "enpass2john"
+  },
+  "kwallet": {
+    "kind": "python",
+    "name": "kwallet2john"
+  },
+  "pwsafe": {
+    "kind": "python",
+    "name": "pwsafe2john"
+  },
+  "strip": {
+    "kind": "python",
+    "name": "strip2john"
+  },
+  "luks": {
+    "kind": "python",
+    "name": "luks2john"
+  },
+  "truecrypt": {
+    "kind": "python",
+    "name": "truecrypt2john"
+  },
+  "bestcrypt": {
+    "kind": "python",
+    "name": "bestcrypt2john"
+  },
+  "diskcryptor": {
+    "kind": "python",
+    "name": "diskcryptor2john"
+  },
+  "androidfde": {
+    "kind": "python",
+    "name": "androidfde2john"
+  },
+  "geli": {
+    "kind": "python",
+    "name": "geli2john"
+  },
+  "ecryptfs": {
+    "kind": "python",
+    "name": "ecryptfs2john"
+  },
+  "encfs": {
+    "kind": "python",
+    "name": "encfs2john"
+  },
+  "vmx": {
+    "kind": "python",
+    "name": "vmx2john"
+  },
+  "pem": {
+    "kind": "python",
+    "name": "pem2john"
+  },
+  "openssl": {
+    "kind": "python",
+    "name": "openssl2john"
+  },
+  "pgpdisk": {
+    "kind": "python",
+    "name": "pgpdisk2john"
+  },
+  "pgpwde": {
+    "kind": "python",
+    "name": "pgpwde2john"
+  },
+  "pgpsda": {
+    "kind": "python",
+    "name": "pgpsda2john"
+  },
+  "knownhosts": {
+    "kind": "python",
+    "name": "known_hosts2john"
+  },
+  "krb": {
+    "kind": "python",
+    "name": "krb2john"
+  },
+  "kirbi": {
+    "kind": "python",
+    "name": "kirbi2john"
+  },
+  "kdcdump": {
+    "kind": "python",
+    "name": "kdcdump2john"
+  },
+  "htdigest": {
+    "kind": "python",
+    "name": "htdigest2john"
+  },
+  "ikescan": {
+    "kind": "python",
+    "name": "ikescan2john"
+  },
+  "sipdump": {
+    "kind": "python",
+    "name": "sipdump2john"
+  },
+  "radius": {
+    "kind": "perl",
+    "name": "radius2john"
+  },
+  "cisco": {
+    "kind": "perl",
+    "name": "cisco2john"
+  },
+  "aix": {
+    "kind": "perl",
+    "name": "aix2john"
+  },
+  "ansible": {
+    "kind": "python",
+    "name": "ansible2john"
+  },
+  "signal": {
+    "kind": "python",
+    "name": "signal2john"
+  },
+  "andotp": {
+    "kind": "python",
+    "name": "andotp2john"
+  },
+  "deepsound": {
+    "kind": "python",
+    "name": "deepsound2john"
+  },
+  "iwork": {
+    "kind": "python",
+    "name": "iwork2john"
+  },
+  "lotus": {
+    "kind": "python",
+    "name": "lotus2john"
+  },
+  "mcafee": {
+    "kind": "python",
+    "name": "mcafee_epo2john"
+  },
+  "ibmiscanner": {
+    "kind": "python",
+    "name": "ibmiscanner2john"
+  },
+  "dpapi": {
+    "kind": "python",
+    "name": "DPAPImk2john"
+  },
+  "racf": {
+    "kind": "native",
+    "name": "racf2john"
+  }
+}

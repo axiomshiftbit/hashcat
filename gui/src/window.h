@@ -7,6 +7,7 @@
 #include "job.h"
 #include "runner.h"
 #include "converter.h"
+#include "extractor.h"
 
 #include <QMainWindow>
 #include <QProcess>
@@ -35,6 +36,8 @@ private:
   QWidget *editor ();
   QWidget *console_page ();
   QWidget *converter_page ();
+  QWidget *capture_page ();
+  QWidget *extractor_page ();
   QWidget *help_page ();
   QWidget *path_field (const char *name, bool directory = false, bool save = false);
   void retranslate ();
@@ -57,6 +60,7 @@ private:
   QList<Job> jobs;
   Runner runner;
   Converter converter;
+  Extractor extractor;
   QProcess probe;
   QTimer probe_timer;
   QByteArray probe_output;

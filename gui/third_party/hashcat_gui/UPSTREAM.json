@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/rgroesslinger/hashcat-gui",
+  "commit": "12bbfc62a866a7ba9a384509e752ce36b5401d9f",
+  "license": "GPL-3.0-or-later",
+  "files": "Command builder, options, constants, machine-readable hash parser, validation helpers, settings dependency and original tests",
+  "patches": "helperutils.cpp: guard Qt 6.8 color scheme APIs for Qt 6.4; ordered list operations adapted into gui/src/pathlist.cpp"
+}

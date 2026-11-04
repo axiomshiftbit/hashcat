@@ -4,6 +4,8 @@
  */
 #include "job.h"
 #include "lang.h"
+#include "commandbuilder.h"
+#include "helperutils.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -18,6 +20,65 @@ QString Job::directory (const QString &root) const
   return QDir (root).filePath ("jobs/" + id);
 }
 
+HashcatOptions Job::command_options () const
+{
+  HashcatOptions o;
+  o.useShortParameters = true;
+  o.hashType = hash_mode; o.attackMode = static_cast<AttackMode> (attack);
+  o.hashFile = QFileInfo (hashes).absoluteFilePath ();
+  o.force = force; o.optimizedKernel = optimized; o.ignoreUsername = username;
+  o.runtime = runtime; o.backendDevices = devices;
+  if (device_type > 0) o.openclDeviceTypes = device_type == 3 ? "1,2" : QString::number (device_type);
+  o.hwmonTempAbort = true; o.hwmonTempAbortCelsius = temperature;
+  o.increment = increment; o.incrementMin = minimum; o.incrementMax = maximum;
+  o.mask = QFileInfo (mask).isFile () ? QFileInfo (mask).absoluteFilePath () : mask;
+  o.wordlists = wordlists;
+  if (o.wordlists.isEmpty ())
+  {
+    if (dictionary.isEmpty () == false) o.wordlists << dictionary;
+    if ((attack == 1 || attack == 12) && (dictionary2.isEmpty () == false)) o.wordlists << dictionary2;
+  }
+  if (CommandBuilder::attackUsesWordlists (o.attackMode) == false) o.wordlists.clear ();
+  for (QString &path : o.wordlists) path = QFileInfo (path).absoluteFilePath ();
+  for (const QString &path : rules) o.rulesFiles << QFileInfo (path).absoluteFilePath ();
+  for (int i = 0; i < 4; ++i)
+  {
+    o.customCharsets[i].enabled = charsets[i].isEmpty () == false;
+    o.customCharsets[i].value = QFileInfo (charsets[i]).isFile () ? QFileInfo (charsets[i]).absoluteFilePath () : charsets[i];
+  }
+  const auto list = [this] (const char *key)
+  {
+    QStringList result;
+    for (const QJsonValue &item : advanced[key].toArray ()) result << item.toString ();
+    return result;
+  };
+  o.pcfgRulesets = list ("pcfgRulesets"); o.tableFiles = list ("tableFiles");
+  o.feedName = advanced["feedName"].toString (); o.feedArguments = list ("feedArguments");
+  o.associationSettings = list ("associationSettings");
+  o.pcfgExtraSettings = list ("pcfgExtraSettings"); o.tableExtraSettings = list ("tableExtraSettings");
+  o.pcfgScale = advanced["pcfgScale"].toString (); o.pcfgCostmax = advanced["pcfgCostmax"].toString ();
+  o.pcfgWeights = advanced["pcfgWeights"].toString (); o.pcfgThreads = advanced["pcfgThreads"].toString ();
+  o.pcfgKbits = advanced["pcfgKbits"].toString (); o.pcfgMaxword = advanced["pcfgMaxword"].toString ();
+  o.pcfgMaxgain = advanced["pcfgMaxgain"].toString (); o.pcfgWalk = advanced["pcfgWalk"].toString ();
+  o.pcfgMask = advanced["pcfgMask"].toString ();
+  o.tableIdentity = advanced["tableIdentity"].toString (); o.tableTemplate = advanced["tableTemplate"].toString ();
+  o.tableSingle = advanced["tableSingle"].toString (); o.tableCap = advanced["tableCap"].toString ();
+  o.tableMaxperm = advanced["tableMaxperm"].toString ();
+  o.ruleLeft = advanced["ruleLeft"].toString (); o.ruleRight = advanced["ruleRight"].toString ();
+  o.generateRules = advanced["generateRules"].toInt (); o.rulesConcat = advanced["rulesConcat"].toBool ();
+  o.hexWordlist = advanced["hexWordlist"].toBool (); o.hexCharset = advanced["hexCharset"].toBool ();
+  o.hexSalt = advanced["hexSalt"].toBool (); o.encodingFrom = advanced["encodingFrom"].toString ();
+  o.encodingTo = advanced["encodingTo"].toString (); o.hashRecipe = advanced["hashRecipe"].toString ();
+  o.skip = advanced["skip"].toString (); o.limit = advanced["limit"].toString ();
+  o.cpuAffinity = advanced["cpuAffinity"].toString (); o.cachePath = advanced["cachePath"].toString ();
+  for (QString &path : o.tableFiles) path = QFileInfo (path).absoluteFilePath ();
+  for (QString &path : o.pcfgRulesets)
+    if (path.contains ('/') || path.contains ('\\')) path = QFileInfo (path).absoluteFilePath ();
+  if (o.feedName.contains ('/') || o.feedName.contains ('\\')) o.feedName = QFileInfo (o.feedName).absoluteFilePath ();
+  if (!o.cachePath.isEmpty ()) o.cachePath = QFileInfo (o.cachePath).absoluteFilePath ();
+  return o;
+}
+
 QString Job::validate () const
 {
   const QRegularExpression identifier ("^[a-zA-Z0-9_-]{1,64}$");
@@ -30,10 +91,42 @@ QString Job::validate () const
     return info.isFile () && info.isReadable ();
   };
   if (readable (hashes) == false) return t ("Hash file is missing or unreadable.", "Файл хешей не найден или недоступен для чтения.");
-  if (QSet<int> {0, 1, 3, 6, 7, 9}.contains (attack) == false) return t ("This attack is not supported by the form. Use Commands.", "Режим атаки не поддерживается формой.");
-  if ((attack != 3) && (readable (dictionary) == false)) return t ("Select a readable dictionary.", "Выберите доступный словарь.");
-  if ((attack == 1) && (readable (dictionary2) == false)) return t ("Combinator mode needs a second dictionary.", "Для комбинации нужен второй словарь.");
-  if ((attack == 3) || (attack == 6) || (attack == 7))
+  if (QSet<int> {0, 1, 3, 4, 5, 6, 7, 8, 9, 12}.contains (attack) == false) return t ("This attack is not supported by the form. Use Commands.", "Режим атаки не поддерживается формой.");
+  const HashcatOptions options = command_options ();
+  for (const QString &path : options.wordlists)
+    if ((readable (path) == false) && (QFileInfo (path).isDir () == false)) return t ("Dictionary is missing: ", "Словарь не найден: ") + path;
+  QString detail;
+  using Error = HelperUtils::LaunchError;
+  const Error option_error = HelperUtils::validateOptions (options, &detail);
+  if (option_error != Error::None)
+  {
+    switch (option_error)
+    {
+      case Error::NoWordlist: return t ("Select a dictionary.", "Выберите словарь.");
+      case Error::WrongWordlistCount: return t ("This mode needs exactly two dictionaries.", "Для этого режима нужны ровно два словаря.");
+      case Error::TooManyWordlists: return t ("Too many dictionaries for this mode.", "Для этого режима выбрано слишком много словарей.");
+      case Error::WordlistMustBeFile: return t ("The second dictionary must be a file.", "Второй словарь должен быть файлом.");
+      case Error::NoMask: return t ("Enter a mask.", "Укажите маску.");
+      case Error::NoTable: return t ("Select a substitution table.", "Выберите таблицу замен.");
+      case Error::NoFeed: return t ("Enter a feed name or path.", "Укажите имя или путь генератора.");
+      case Error::NoHashRecipe: return t ("Hash mode 4000 requires a recipe.", "Для типа хеша 4000 нужен рецепт.");
+      case Error::InvalidCachePath: return t ("The cache directory does not exist.", "Каталог кеша не существует.");
+      case Error::AssociationSettingsWithWordlist: return t ("Association settings require an empty dictionary list.", "Параметры ассоциации требуют пустого списка словарей.");
+      case Error::MaskNeedsWordMarker: return t ("Mode 12 needs one ?w in the mask.", "Режим 12 требует один маркер ?w в маске.");
+      case Error::MaskMultipleWordMarkers: return t ("Use only one ?w marker.", "Используйте только один маркер ?w.");
+      case Error::MaskMultipleQMarks: return t ("Use only one ?q marker.", "Используйте только один маркер ?q.");
+      case Error::MaskQBeforeWord: return t ("Place ?q after ?w.", "Разместите ?q после ?w.");
+      case Error::MaskQWithoutWordlist: return t ("?q requires a second dictionary.", "Для ?q нужен второй словарь.");
+      case Error::SecondWordlistWithoutQ: return t ("Add ?q for the second dictionary.", "Добавьте ?q для второго словаря.");
+      case Error::MaskMarkersNotAllowed: return t ("?w and ?q require mode 12.", "Маркеры ?w и ?q требуют режима 12.");
+      case Error::IncrementInMode12: return t ("Mode 12 does not accept increment.", "Режим 12 не поддерживает наращивание длины.");
+      case Error::InvalidIncrement: return t ("Check the mask length range.", "Проверьте диапазон длины маски.");
+      default: return t ("Invalid attack settings: ", "Недопустимые параметры режима: ") + detail;
+    }
+  }
+  if (attack == 5) for (const QString &path : options.tableFiles)
+    if (readable (path) == false) return t ("Table is missing: ", "Таблица не найдена: ") + path;
+  if (CommandBuilder::attackUsesMask (options.attackMode))
   {
     if (mask.isEmpty ()) return t ("Enter a mask or a .hcmask file.", "Укажите маску или файл .hcmask.");
     if (mask.startsWith ('-')) return t ("A mask cannot start with a dash. Use a .hcmask file.", "Маска не должна начинаться с дефиса. Используйте файл .hcmask.");
@@ -47,7 +140,7 @@ QString Job::validate () const
       {
         if (mask[i] != '?') continue;
         ++i;
-        if ((i == mask.size ()) || (QString ("ludhHsab1234?").contains (mask[i]) == false)) return t ("Invalid mask token after ?.", "Неверный символ маски после ?.");
+        if ((i == mask.size ()) || ((QString ("ludhHsab1234?") + (attack == 12 ? "wq" : "")).contains (mask[i]) == false)) return t ("Invalid mask token after ?.", "Неверный символ маски после ?.");
         const int charset = mask[i].digitValue ();
         if ((charset >= 1) && (charset <= 4) && charsets[charset - 1].isEmpty ()) return t ("Define the custom character set used by the mask.", "Задайте пользовательский набор символов для маски.");
       }
@@ -62,7 +155,7 @@ QString Job::validate () const
   {
     if (QRegularExpression ("^[1-9][0-9]*(,[1-9][0-9]*)*$").match (devices).hasMatch () == false) return t ("Devices: comma-separated IDs, for example 1,2.", "Устройства: номера через запятую, например 1,2.");
   }
-  for (const QString &rule : rules)
+  if (CommandBuilder::attackUsesRules (options.attackMode)) for (const QString &rule : rules)
   {
     if (readable (rule) == false) return t ("A rule file is not readable.", "Один из файлов правил недоступен.");
   }
@@ -82,31 +175,13 @@ QStringList Job::arguments (const QString &root, const bool restore, const bool 
 {
   const QString dir = directory (root);
   if (restore && (modern == false)) return {"--session=" + id, "--restore-file-path=" + dir + "/session.restore", "--restore"};
-  QStringList args {"-m", QString::number (hash_mode), "-a", QString::number (attack),
-    "--session=" + id, "--status", "--status-json", "--status-timer=1",
+  QStringList args {"--session=" + id, "--status", "--status-json", "--status-timer=1",
     "--restore-file-path=" + dir + "/session.restore",
     "--outfile=" + dir + "/results.txt", "--outfile-format=1,3", "--logfile-disable",
-    "-w", QString::number (workload), "--hwmon-temp-abort=" + QString::number (temperature)};
+    "-w", QString::number (workload)};
   if (restore) args << "--restore-position";
   if (attack != 9) args << "--potfile-path=" + dir + "/hashcat.potfile";
-  if (optimized) args << "-O";
-  if (username) args << "--username";
-  if (force) args << "--force";
-  if (runtime > 0) args << "--runtime=" + QString::number (runtime);
-  if (device_type > 0) args << "-D" << (device_type == 3 ? "1,2" : QString::number (device_type));
-  if (devices.isEmpty () == false) args << "-d" << devices;
-  if (increment && ((attack == 3) || (attack == 6) || (attack == 7))) args << "--increment" << "--increment-min=" + QString::number (minimum) << "--increment-max=" + QString::number (maximum);
-  for (int i = 0; i < 4; ++i)
-  {
-    if (charsets[i].isEmpty () == false) args << "-" + QString::number (i + 1) << charsets[i];
-  }
-  for (const QString &rule : rules) args << "-r" << QFileInfo (rule).absoluteFilePath ();
-  args << extra << QFileInfo (hashes).absoluteFilePath ();
-  const QString actual_mask = QFileInfo (mask).isFile () ? QFileInfo (mask).absoluteFilePath () : mask;
-  if (attack == 7) args << actual_mask;
-  if (attack != 3) args << QFileInfo (dictionary).absoluteFilePath ();
-  if (attack == 1) args << QFileInfo (dictionary2).absoluteFilePath ();
-  if ((attack == 3) || (attack == 6)) args << actual_mask;
+  args << extra << CommandBuilder::build (command_options ());
   return args;
 }
 
@@ -116,6 +191,7 @@ QJsonObject Job::json () const
   obj["id"] = id; obj["name"] = name; obj["binary"] = binary; obj["hashes"] = hashes;
   obj["dictionary"] = dictionary; obj["dictionary2"] = dictionary2; obj["mask"] = mask; obj["devices"] = devices;
   obj["rules"] = QJsonArray::fromStringList (rules); obj["extra"] = QJsonArray::fromStringList (extra);
+  obj["wordlists"] = QJsonArray::fromStringList (wordlists); obj["advanced"] = advanced; obj["editor_state"] = editor_state;
   QJsonArray sets;
   for (const auto &charset : charsets) sets.append (charset);
   obj["charsets"] = sets;
@@ -133,6 +209,9 @@ Job Job::from_json (const QJsonObject &obj)
   job.mask = obj["mask"].toString (); job.devices = obj["devices"].toString ();
   for (const auto &rule : obj["rules"].toArray ()) job.rules << rule.toString ();
   for (const auto &arg : obj["extra"].toArray ()) job.extra << arg.toString ();
+  for (const auto &path : obj["wordlists"].toArray ()) job.wordlists << path.toString ();
+  job.advanced = obj["advanced"].toObject ();
+  job.editor_state = obj["editor_state"].toObject ();
   const QJsonArray sets = obj["charsets"].toArray ();
   for (qsizetype i = 0; i < qMin<qsizetype> (4, sets.size ()); ++i) job.charsets[i] = sets[i].toString ();
   job.hash_mode = obj["hash_mode"].toInt (); job.attack = obj["attack"].toInt (); job.workload = obj["workload"].toInt (2);

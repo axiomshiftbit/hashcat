@@ -6,6 +6,18 @@ forms, live status, pause/resume/checkpoint, per-task restore and results, profi
 an unrestricted Hashcat argument editor, local capture conversion and built-in help.
 This is an independent front end. The Hashcat engine is a separate process.
 
+The integrated command builder and validators come from
+[rgroesslinger/hashcat-gui](https://github.com/rgroesslinger/hashcat-gui).
+The dashboard, rolling speed graph, device cards and extractor catalog are adapted
+from [Hashcat-Reactor](https://github.com/jjsvs/Hashcat-Reactor).
+See THIRD_PARTY.md for exact revisions, licenses and modifications.
+
+Forms cover all ten Hashcat 8 attack modes: 0, 1, 3, 4, 5, 6, 7, 8, 9 and 12.
+Modes 4/5/8/12 require Hashcat 8. Checked wordlists/rules execute in list order;
+profiles preserve unchecked entries too. For PCFG, table and generic feeds, open
+the matching extended-options tab. Mode 12 uses one `?w` and optionally one `?q`
+after it for a second wordlist; it does not accept incrementing.
+
 ## Run
 
 Windows: unpack the complete portable package and run `hashcat-desktop.exe`.
@@ -47,14 +59,22 @@ native Windows. No capture is sent to an online service. An empty or incomplete
 capture is reported as an unsuccessful extraction. Existing output files are not
 overwritten.
 
-Archive, document and disk formats (ZIP, RAR, 7z, PDF, Office, KeePass, BitLocker,
-VeraCrypt and others) need their own compatible extractors. They are not formats of
-the website's capture converter. The built-in help explains importing extracted
-hashes. This GUI does not claim to extract all of those formats itself.
+The second converter tab integrates the 78-entry Reactor catalog, including ZIP,
+RAR, 7z, PDF, Office, KeePass and other formats. Install the appropriate
+[John Jumbo](https://github.com/openwall/john) extractor and its dependencies,
+choose its executable/script and, if needed, a Python/Perl interpreter. Additional
+arguments are passed literally, one per line; the input path is appended last.
+The application removes John filename metadata from `$...$` records and asks the
+selected Hashcat to identify compatible modes before saving. Unsupported output,
+empty output, failures and cancellation do not create a result. Existing files
+are never replaced. Select the appropriate mode when identification is ambiguous.
+Each tool has its own supported versions and dependencies; catalog membership
+does not mean all 78 formats are supported by Hashcat. Binary extractor outputs
+and formats without `$...$` records require their own external preparation.
 
 ## Build and test
 
-Requirements: CMake 3.21+, C++17 compiler and Qt 6.4+ Widgets/Test development files.
+Requirements: CMake 3.21+, C++17 compiler and Qt 6.4+ Widgets/Concurrent/Test files.
 
 ```sh
 cmake -S gui -B gui/build -DCMAKE_BUILD_TYPE=Release
@@ -77,7 +97,9 @@ PoCL CPU runtime. A dedicated GPU remains necessary for vendor-specific validati
 
 ## License
 
-The GUI source is MIT licensed, like Hashcat. Qt is dynamically linked and retains
+The combined GUI is GPL-3.0-or-later; see LICENSE and THIRD_PARTY.md. Hashcat's
+separate engine remains MIT licensed. Both packages include corresponding GUI
+source and build scripts in `HashcatDesktop-source.tar.gz`. Qt is dynamically linked and retains
 its own LGPL/GPL/commercial licensing options. Distribution must preserve Qt license
 notices and the user's ability to replace its shared libraries. hcxtools is a
 separate external dependency and retains its upstream license.

@@ -22,6 +22,15 @@ int main (int argc, char **argv)
   QCoreApplication app (argc, argv);
   const QStringList args = app.arguments ();
   if (args.contains ("--version")) { puts ("v8.0.0-fixture"); return 0; }
+  if (args.contains ("--identify"))
+  {
+    QFile file (args.last ());
+    if (file.open (QIODevice::ReadOnly) && file.readAll ().startsWith ("$pdf$fixture")) { puts ("10500\n10600"); return 0; }
+    return 255;
+  }
+  if (args.contains ("--fixture-extract")) { puts ("C:/test $price.pdf:$pdf$fixture:::::metadata"); return 0; }
+  if (args.contains ("--fixture-incompatible")) { puts ("test:$johnonly$unsupported"); return 0; }
+  if (args.contains ("--fixture-empty")) return 0;
   if (args.contains ("-hh")) { puts ("--restore-position\n0 | MD5 | Raw Hash\n22000 | WPA-PBKDF2-PMKID+EAPOL | Network Protocol"); return 0; }
   if (args.contains ("--fixture-arguments"))
   {
