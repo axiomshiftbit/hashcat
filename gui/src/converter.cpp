@@ -88,6 +88,7 @@ bool Converter::start (const Conversion &request)
   canceled = false;
   active = true;
   path_step = config.wsl ? 1 : 0;
+  path_buffer.clear ();
   if (config.wsl)
   {
     process.start ("wsl.exe", {"--exec", "wslpath", "-u", QDir::toNativeSeparators (source_path)});

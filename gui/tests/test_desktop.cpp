@@ -6,7 +6,12 @@
 #include "lang.h"
 
 #include <QtTest>
-#include <QtWidgets>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QListWidget>
+#include <QPushButton>
+#include <QPlainTextEdit>
+#include <QTableWidget>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QCryptographicHash>
@@ -199,9 +204,11 @@ private slots:
     Job j = job (); j.binary = binary; j.device_type = 1; j.workload = 1; j.force = true;
     const QString directory = j.directory (temp.path ()); QVERIFY (QDir ().mkpath (directory));
     Runner runner; QSignalSpy done (&runner, &Runner::finished);
+    QStringList log;
+    connect (&runner, &Runner::line, &runner, [&log] (const QString &text) { log << text; });
     QVERIFY (runner.start (binary, j.arguments (temp.path ()), QFileInfo (binary).absolutePath ()));
     QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 120000);
-    QCOMPARE (done[0][0].toInt (), 0);
+    QVERIFY2 (done[0][0].toInt () == 0, qPrintable (log.join ('\n')));
     QFile results (directory + "/results.txt"); QVERIFY (results.open (QIODevice::ReadOnly));
     QVERIFY (results.readAll ().contains (":74657374"));
   }
@@ -216,6 +223,42 @@ private slots:
     QVERIFY (converter.start (request));
     QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 10000); QVERIFY (done[0][0].toBool () == false);
     QVERIFY (QFileInfo::exists (request.output) == false);
+  }
+
+  void real_converter_data ()
+  {
+    QTest::addColumn<QString> ("input"); QTest::addColumn<int> ("mode");
+    for (const char *suffix : {"cap", "pcap", "pcapng", "pcap.gz", "16800", "hccapx", "hccap"})
+      QTest::newRow (suffix) << "synthetic." + QString::fromLatin1 (suffix) << 22000;
+    QTest::newRow ("EAP-MD5") << QString ("eap-md5.pcap") << 4800;
+    QTest::newRow ("LEAP") << QString ("eap-leap.pcap") << 5500;
+    QTest::newRow ("TACACS+") << QString ("tacacs.pcap") << 16100;
+  }
+
+  void real_converter ()
+  {
+    QFETCH (QString, input); QFETCH (int, mode);
+    const QString fixtures = qEnvironmentVariable ("CAPTURE_FIXTURES");
+    if (fixtures.isEmpty ()) QSKIP ("CAPTURE_FIXTURES not supplied");
+    Converter converter; QSignalSpy done (&converter, &Converter::finished);
+    QStringList log; connect (&converter, &Converter::log, &converter, [&log] (const QString &text) { log << text; });
+    Conversion request; request.input = QDir (fixtures).filePath (input); request.mode = mode;
+    request.output = temp.filePath (input + ".converted"); request.tools_directory = qEnvironmentVariable ("HCX_DIRECTORY");
+    QVERIFY (converter.start (request));
+    QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 20000);
+    QVERIFY2 (done[0][0].toBool (), qPrintable (log.join ('\n')));
+    QVERIFY (done[0][2].toInt () > 0);
+    QFile result (request.output); QVERIFY (result.open (QIODevice::ReadOnly));
+    const QByteArray data = result.readAll ();
+    if (mode == 22000) QVERIFY (data.startsWith ("WPA*"));
+    if (QStringList {"synthetic.cap", "synthetic.pcap", "synthetic.pcapng", "synthetic.pcap.gz", "synthetic.16800"}.contains (input))
+    {
+      if (mode == 22000)
+      {
+        QFile expected (QDir (fixtures).filePath ("expected-pmkid.txt")); QVERIFY (expected.open (QIODevice::ReadOnly));
+        QCOMPARE (data.split ('*').mid (0, 6), expected.readAll ().split ('*').mid (0, 6));
+      }
+    }
   }
 };
 

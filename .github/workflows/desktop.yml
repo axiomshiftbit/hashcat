@@ -8,10 +8,10 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.12'
       - name: Qt
@@ -49,8 +49,10 @@ jobs:
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
           $env:POCL_MAX_PTHREAD_COUNT = '2'
           $env:POCL_CPU_MAX_CU_COUNT = '2'
-          & gui/build/Release/desktop_tests.exe real_hashcat_dictionary
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & gui/build/Release/desktop_tests.exe real_hashcat_dictionary -o "$env:RUNNER_TEMP\real-windows.txt",txt
+          $result = $LASTEXITCODE
+          Get-Content "$env:RUNNER_TEMP\real-windows.txt"
+          if ($result) { exit $result }
       - name: Package
         shell: pwsh
         run: |
@@ -64,23 +66,24 @@ jobs:
           Copy-Item docs/license.txt gui/dist/HashcatDesktop/licenses/hashcat-MIT.txt
           if (Test-Path C:/Qt/6.10.2/msvc2022_64/licenses) { Copy-Item C:/Qt/6.10.2/msvc2022_64/licenses/* gui/dist/HashcatDesktop/licenses/ -Recurse }
           Compress-Archive gui/dist/HashcatDesktop gui/dist/HashcatDesktop-Windows-x64.zip
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: HashcatDesktop-Windows-x64
           path: gui/dist/HashcatDesktop-Windows-x64.zip
           if-no-files-found: error
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: Windows-test-results
           path: |
             gui/build/Testing/Temporary/LastTest.log
             ${{ runner.temp }}/desktop-windows.png
+            ${{ runner.temp }}/real-windows.txt
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - name: Dependencies
@@ -93,17 +96,20 @@ jobs:
           POCL_MAX_PTHREAD_COUNT: '2'
           POCL_CPU_MAX_CU_COUNT: '2'
           GUI_SCREENSHOT: /tmp/desktop-linux.png
-        run: ctest --test-dir gui/build --output-on-failure
+          CAPTURE_FIXTURES: /tmp/desktop-captures
+        run: |
+          python3 gui/tests/generate_captures.py /tmp/desktop-captures
+          ctest --test-dir gui/build --output-on-failure
       - name: Package
         run: |
           mkdir -p gui/dist/HashcatDesktop
           cp gui/build/hashcat-desktop gui/README.md gui/dist/HashcatDesktop/
           tar -czf gui/dist/HashcatDesktop-Linux-x64.tar.gz -C gui/dist HashcatDesktop
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: HashcatDesktop-Linux-x64
           path: gui/dist/HashcatDesktop-Linux-x64.tar.gz
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: Linux-test-results

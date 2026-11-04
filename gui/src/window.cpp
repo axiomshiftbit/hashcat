@@ -5,7 +5,36 @@
 #include "window.h"
 #include "lang.h"
 
-#include <QtWidgets>
+#include <QApplication>
+#include <QCheckBox>
+#include <QCloseEvent>
+#include <QComboBox>
+#include <QCompleter>
+#include <QFileDialog>
+#include <QFormLayout>
+#include <QFontDatabase>
+#include <QHBoxLayout>
+#include <QHeaderView>
+#include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QMessageBox>
+#include <QPlainTextEdit>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QSpinBox>
+#include <QStackedWidget>
+#include <QStatusBar>
+#include <QTableWidget>
+#include <QTabWidget>
+#include <QTextBrowser>
+#include <QVBoxLayout>
+#include <QDir>
+#include <QDateTime>
+#include <QRegularExpression>
+#include <QStandardPaths>
+#include <QSet>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
@@ -131,7 +160,7 @@ Window::Window (const QString &data_directory, QWidget *parent)
   });
   connect (&probe, &QProcess::errorOccurred, this, [this] (QProcess::ProcessError error)
   {
-    if (error == QProcess::FailedToStart) { probe_timer.stop (); fail (probe.errorString ()); refresh_controls (); }
+    if (error == QProcess::FailedToStart) { probe_timer.stop (); pending_restore = -1; fail (probe.errorString ()); refresh_controls (); }
   });
   connect (&probe, qOverload<int, QProcess::ExitStatus> (&QProcess::finished), this, [this] (int code, QProcess::ExitStatus)
   {
@@ -155,11 +184,19 @@ Window::Window (const QString &data_directory, QWidget *parent)
     }
     else
     {
+      if (probe_modes) { probe.setProperty ("binary", QString ()); modern_restore = false; }
       get<QPlainTextEdit> ("deviceInfo")->setPlainText (QString::fromUtf8 (probe_output));
       get<QTabWidget> ("detailsTabs")->setCurrentIndex (2);
       get<QListWidget> ("navigation")->setCurrentRow (0);
     }
     refresh_controls ();
+    if (pending_restore >= 0)
+    {
+      const int index = pending_restore;
+      pending_restore = -1;
+      if (code == 0) start_job (index, true);
+      else fail (t ("Cannot determine restore support. Check the engine help.", "Не удалось определить способ восстановления. Проверьте справку движка."));
+    }
   });
   connect (&converter, &Converter::log, this, [this] (const QString &text) { get<QPlainTextEdit> ("conversionLog")->appendPlainText (text); });
   connect (&converter, &Converter::finished, this, [this] (bool success, const QString &path, int count)
@@ -170,6 +207,7 @@ Window::Window (const QString &data_directory, QWidget *parent)
     if (success)
     {
       get<QLineEdit> ("conversionOutput")->setText (path);
+      get<QPushButton> ("useConversion")->setProperty ("outputPath", path);
       get<QPlainTextEdit> ("conversionLog")->appendPlainText (t ("Saved records: ", "Сохранено записей: ") + QString::number (count));
     }
   });
@@ -241,7 +279,7 @@ void Window::build ()
   {
     qApp->setProperty ("language", language->currentData ().toString ()); retranslate (); save ();
   });
-  connect (get<QLineEdit> ("binary"), &QLineEdit::textChanged, this, [this] { modern_restore = false; refresh_form (); });
+  connect (get<QLineEdit> ("binary"), &QLineEdit::textChanged, this, [this] { modern_restore = false; probe.setProperty ("binary", QString ()); refresh_form (); });
   for (auto *field : get<QWidget> ("form")->findChildren<QLineEdit *> ()) connect (field, &QLineEdit::textChanged, this, &Window::refresh_form);
   for (auto *field : get<QWidget> ("form")->findChildren<QComboBox *> ()) connect (field, &QComboBox::currentTextChanged, this, &Window::refresh_form);
   for (auto *field : get<QWidget> ("form")->findChildren<QSpinBox *> ()) connect (field, &QSpinBox::valueChanged, this, &Window::refresh_form);
@@ -474,6 +512,7 @@ QWidget *Window::console_page ()
   args->setFont (QFontDatabase::systemFont (QFontDatabase::FixedFont)); args->setMaximumHeight (230); layout->addWidget (args);
   auto *form = new QFormLayout;
   row (form, "Working directory (empty = engine directory)", "Рабочий каталог (пусто = каталог движка)", path_field ("expertCwd", true)); layout->addLayout (form);
+  row (form, "Standard input file (optional, disables keyboard input)", "Файл стандартного ввода (вместо клавиатуры)", path_field ("stdinFile"));
   auto *actions = new QHBoxLayout;
   auto *run = button ("expertRun", "Run command", "Выполнить команду"); run->setProperty ("primary", true);
   auto *stop = button ("expertStop", "Stop", "Остановить");
@@ -538,6 +577,7 @@ QWidget *Window::converter_page ()
     request.tools_directory = get<QLineEdit> ("hcxDirectory")->text ();
     request.mode = get<QComboBox> ("conversionMode")->currentData ().toInt ();
     request.wsl = get<QCheckBox> ("useWsl")->isChecked ();
+    get<QPushButton> ("useConversion")->setProperty ("hashMode", request.mode);
     get<QPlainTextEdit> ("conversionLog")->clear ();
     get<QPushButton> ("useConversion")->setEnabled (false);
     convert->setEnabled (false); cancel->setEnabled (true);
@@ -547,8 +587,8 @@ QWidget *Window::converter_page ()
   connect (cancel, &QPushButton::clicked, &converter, &Converter::cancel);
   connect (use, &QPushButton::clicked, this, [this]
   {
-    get<QLineEdit> ("hashFile")->setText (get<QLineEdit> ("conversionOutput")->text ());
-    get<QComboBox> ("hashMode")->setEditText (QString::number (get<QComboBox> ("conversionMode")->currentData ().toInt ()));
+    get<QLineEdit> ("hashFile")->setText (get<QPushButton> ("useConversion")->property ("outputPath").toString ());
+    get<QComboBox> ("hashMode")->setEditText (get<QPushButton> ("useConversion")->property ("hashMode").toString ());
     get<QListWidget> ("navigation")->setCurrentRow (1);
   });
   return widget;
@@ -684,7 +724,7 @@ void Window::refresh_form ()
   get<QPlainTextEdit> ("preview")->setPlainText (display_command (job.binary, job.arguments (root)));
   get<QLabel> ("validation")->setText (job.validate ());
   get<QPushButton> ("addJob")->setEnabled (job.validate ().isEmpty ());
-  get<QPushButton> ("startNow")->setEnabled (job.validate ().isEmpty () && (runner.busy () == false));
+  get<QPushButton> ("startNow")->setEnabled (job.validate ().isEmpty () && (runner.busy () == false) && (probe.state () == QProcess::NotRunning));
 }
 
 int Window::selected () const
@@ -712,13 +752,17 @@ void Window::refresh_jobs ()
 void Window::refresh_controls ()
 {
   const bool busy = runner.busy ();
+  const bool locked = busy || (probe.state () != QProcess::NotRunning);
   const int index = selected ();
-  get<QPushButton> ("runSelected")->setEnabled ((busy == false) && (index >= 0) && (jobs[index].state == "waiting"));
-  get<QPushButton> ("restore")->setEnabled ((busy == false) && (index >= 0) && QFileInfo::exists (jobs[index].directory (root) + "/session.restore"));
+  get<QPushButton> ("runSelected")->setEnabled ((locked == false) && (index >= 0) && (jobs[index].state == "waiting"));
+  get<QPushButton> ("restore")->setEnabled ((locked == false) && (index >= 0) && QFileInfo::exists (jobs[index].directory (root) + "/session.restore"));
   get<QPushButton> ("duplicate")->setEnabled (index >= 0);
-  get<QPushButton> ("removeJob")->setEnabled ((busy == false) && (index >= 0));
+  get<QPushButton> ("removeJob")->setEnabled ((locked == false) && (index >= 0));
   for (const char *name : {"pause", "resume", "checkpoint", "stop", "expertStop", "sendKeys"}) get<QPushButton> (name)->setEnabled (busy);
-  get<QPushButton> ("expertRun")->setEnabled (busy == false);
+  get<QPushButton> ("pause")->setEnabled (busy && (engine_status == 3));
+  get<QPushButton> ("resume")->setEnabled (busy && (engine_status == 4));
+  get<QPushButton> ("expertRun")->setEnabled (locked == false);
+  get<QLineEdit> ("binary")->parentWidget ()->setEnabled (locked == false);
   const bool idle_probe = probe.state () == QProcess::NotRunning;
   for (const char *name : {"loadHelp", "refreshHelp", "probeDevices"}) get<QPushButton> (name)->setEnabled (idle_probe && (busy == false));
   refresh_form ();
@@ -730,6 +774,11 @@ void Window::add_job (const bool launch)
   const QString error = job.validate ();
   if (error.isEmpty () == false) { fail (error); return; }
   job.id = QUuid::createUuid ().toString (QUuid::Id128);
+  job.hashes = QFileInfo (job.hashes).absoluteFilePath ();
+  if (job.dictionary.isEmpty () == false) job.dictionary = QFileInfo (job.dictionary).absoluteFilePath ();
+  if (job.dictionary2.isEmpty () == false) job.dictionary2 = QFileInfo (job.dictionary2).absoluteFilePath ();
+  if (QFileInfo (job.mask).isFile ()) job.mask = QFileInfo (job.mask).absoluteFilePath ();
+  for (QString &rule : job.rules) rule = QFileInfo (rule).absoluteFilePath ();
   jobs.append (job);
   save (); refresh_jobs ();
   get<QTableWidget> ("jobs")->selectRow (jobs.size () - 1);
@@ -739,17 +788,29 @@ void Window::add_job (const bool launch)
 
 void Window::start_job (const int index, const bool restore)
 {
-  if (runner.busy () || (index < 0) || (index >= jobs.size ())) return;
+  if (runner.busy () || (probe.state () != QProcess::NotRunning) || (index < 0) || (index >= jobs.size ())) return;
   Job &job = jobs[index];
   const QString error = job.validate ();
   if (error.isEmpty () == false) { fail (error); return; }
   if (restore && (QFileInfo::exists (job.directory (root) + "/session.restore") == false)) { fail (t ("No restore file.", "Файл восстановления отсутствует.")); return; }
+  if (restore && (probe.property ("binary").toString () != job.binary))
+  {
+    pending_restore = index;
+    probe_modes = true;
+    probe_output.clear ();
+    probe.setProperty ("binary", job.binary);
+    probe.setWorkingDirectory (QFileInfo (job.binary).absolutePath ());
+    probe.start (job.binary, {"-hh"});
+    probe_timer.start (45000);
+    refresh_controls ();
+    return;
+  }
   if ((restore == false) && (job.state != "waiting")) return;
   if (QDir ().mkpath (job.directory (root)) == false) { fail (t ("Cannot create task directory.", "Не удалось создать каталог задачи.")); return; }
   QFile::setPermissions (job.directory (root), QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
   QString save_error;
   if (save_json (job.directory (root) + "/job.json", job.json (), &save_error) == false) { fail (save_error); return; }
-  active = index; expert = false; stop_requested = false; job.state = "running";
+  active = index; expert = false; stop_requested = false; engine_status = 0; job.state = "running";
   get<QPlainTextEdit> ("log")->clear ();
   get<QProgressBar> ("progress")->setValue (0);
   for (const char *name : {"speed", "recovered", "eta"}) get<QLabel> (name)->setText ("—");
@@ -763,7 +824,7 @@ void Window::start_job (const int index, const bool restore)
 
 void Window::start_expert ()
 {
-  if (runner.busy ()) return;
+  if (runner.busy () || (probe.state () != QProcess::NotRunning)) return;
   const QString binary = get<QLineEdit> ("binary")->text ();
   if (QFileInfo (binary).isExecutable () == false) { fail (t ("Select the Hashcat executable.", "Выберите исполняемый файл Hashcat.")); return; }
   const QString text = get<QPlainTextEdit> ("arguments")->toPlainText ();
@@ -786,9 +847,11 @@ void Window::start_expert ()
   QString cwd = get<QLineEdit> ("expertCwd")->text ();
   if (cwd.isEmpty ()) cwd = QFileInfo (binary).absolutePath ();
   if (QFileInfo (cwd).isDir () == false) { fail (t ("Working directory does not exist.", "Рабочий каталог не существует.")); return; }
-  expert = true; active = -1; stop_requested = false;
+  expert = true; active = -1; stop_requested = false; engine_status = 0;
   get<QPlainTextEdit> ("consoleOutput")->clear ();
-  runner.start (QFileInfo (binary).absoluteFilePath (), args, cwd);
+  const QString stdin_file = get<QLineEdit> ("stdinFile")->text ();
+  if ((stdin_file.isEmpty () == false) && ((QFileInfo (stdin_file).isFile () == false) || (QFileInfo (stdin_file).isReadable () == false))) { fail (t ("Standard input file is not readable.", "Файл стандартного ввода недоступен.")); return; }
+  runner.start (QFileInfo (binary).absoluteFilePath (), args, cwd, stdin_file.isEmpty (), stdin_file);
   refresh_controls ();
 }
 
@@ -798,6 +861,7 @@ void Window::run_probe (const QStringList &args, const bool modes)
   const QString binary = get<QLineEdit> ("binary")->text ();
   if (QFileInfo (binary).isExecutable () == false) { fail (t ("Select the Hashcat executable.", "Выберите исполняемый файл Hashcat.")); return; }
   probe_modes = modes; probe_output.clear ();
+  if (modes) probe.setProperty ("binary", QFileInfo (binary).absoluteFilePath ());
   probe.setWorkingDirectory (QFileInfo (binary).absolutePath ());
   probe.start (QFileInfo (binary).absoluteFilePath (), args);
   probe_timer.start (45000); refresh_controls ();
@@ -811,6 +875,7 @@ void Window::append_log (const QString &text)
 
 void Window::set_status (const QJsonObject &object)
 {
+  engine_status = object["status"].toInt ();
   const QJsonArray progress = object["progress"].toArray ();
   if ((progress.size () == 2) && (progress[1].toDouble () > 0))
     get<QProgressBar> ("progress")->setValue (int (qBound (0.0, progress[0].toDouble () / progress[1].toDouble () * 1000, 1000.0)));
@@ -839,6 +904,7 @@ void Window::set_status (const QJsonObject &object)
     refresh_jobs ();
   }
   refresh_results ();
+  refresh_controls ();
 }
 
 void Window::finished (const int code, const bool crashed)

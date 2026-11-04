@@ -15,7 +15,7 @@ class Runner : public QObject
 public:
   explicit Runner (QObject *parent = nullptr);
   ~Runner () override;
-  bool start (const QString &binary, const QStringList &args, const QString &cwd, bool interactive = true);
+  bool start (const QString &binary, const QStringList &args, const QString &cwd, bool interactive = true, const QString &stdin_file = {});
   bool busy () const;
   bool command (char key);
   void stop ();

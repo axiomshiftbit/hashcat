@@ -73,13 +73,14 @@ bool Runner::busy () const
   return process.state () != QProcess::NotRunning;
 }
 
-bool Runner::start (const QString &binary, const QStringList &args, const QString &cwd, const bool interactive)
+bool Runner::start (const QString &binary, const QStringList &args, const QString &cwd, const bool interactive, const QString &stdin_file)
 {
   if (busy ()) return false;
   release_input ();
   pending.clear ();
   emitted = false;
   accepting_commands = interactive;
+  process.setStandardInputFile (stdin_file);
 #ifdef Q_OS_WIN
   if (interactive)
   {

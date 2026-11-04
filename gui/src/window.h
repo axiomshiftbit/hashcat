@@ -63,4 +63,6 @@ private:
   QString help_text;
   bool probe_modes = false, modern_restore = false, stop_requested = false, expert = false, loading = false;
   int active = -1;
+  int pending_restore = -1;
+  int engine_status = 0;
 };
