@@ -20,7 +20,7 @@
     "name": "office2john"
   },
   "pdf": {
-    "kind": "perl",
+    "kind": "python",
     "name": "pdf2john"
   },
   "libreoffice": {

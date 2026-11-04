@@ -64,7 +64,7 @@ def main():
             continue
         command = [tool]
         if tool.suffix in (".py", ".pl"):
-            if key in ("pdf", "krb"):
+            if tool.name.lower() in ("pdf2john.py", "krb2john.py"):
                 command = [pdf_python, "-X", "utf8", tool]
             else:
                 posix = "/cygdrive/" + tool.drive[0].lower() + tool.as_posix()[2:]
