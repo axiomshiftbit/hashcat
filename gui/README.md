@@ -11,7 +11,7 @@ This is an independent front end. The Hashcat engine is a separate process.
 Windows: unpack the complete portable package and run `hashcat-desktop.exe`.
 The packaged `hashcat/` directory must stay intact. Install the GPU manufacturer's
 compute driver. If Windows reports a missing MSVC runtime, install Microsoft's
-Visual C++ 2015-2022 x64 redistributable.
+[Visual C++ x64 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 
 Linux (Debian 13 / Ubuntu 24.04 or newer): install `qt6-base-dev`, `hashcat` and your
 compute runtime, then run `./hashcat-desktop`. CPU testing can use `pocl-opencl-icd`.
@@ -23,7 +23,8 @@ full CLI reference. The **Commands** page accepts every Hashcat argument, one pe
 line or as a JSON array, including commands without a dedicated form. It does not
 interpret shell pipes or redirection.
 
-Each managed task keeps an independent restore file, potfile and result file under
+Each managed task keeps an independent restore file and result file, and a potfile
+except in association mode (where Hashcat forbids it), under
 the application's local data directory (`HashcatDesktop/Hashcat Desktop` under
 LocalAppData on Windows or the platform Qt application data directory on Linux).
 `--data-dir PATH` selects another workspace. Only one application instance can use
@@ -80,3 +81,6 @@ The GUI source is MIT licensed, like Hashcat. Qt is dynamically linked and retai
 its own LGPL/GPL/commercial licensing options. Distribution must preserve Qt license
 notices and the user's ability to replace its shared libraries. hcxtools is a
 separate external dependency and retains its upstream license.
+The Windows archive includes the unmodified Qt Base 6.10.2 sources, licenses,
+third-party notices in those sources, build configuration and SBOM in `licenses/`.
+You may rebuild and replace its Qt shared libraries, including for debugging changes.

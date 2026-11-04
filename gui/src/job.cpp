@@ -82,10 +82,11 @@ QStringList Job::arguments (const QString &root, const bool restore, const bool 
   if (restore && (modern == false)) return {"--session=" + id, "--restore-file-path=" + dir + "/session.restore", "--restore"};
   QStringList args {"-m", QString::number (hash_mode), "-a", QString::number (attack),
     "--session=" + id, "--status", "--status-json", "--status-timer=1",
-    "--restore-file-path=" + dir + "/session.restore", "--potfile-path=" + dir + "/hashcat.potfile",
+    "--restore-file-path=" + dir + "/session.restore",
     "--outfile=" + dir + "/results.txt", "--outfile-format=1,3", "--logfile-disable",
     "-w", QString::number (workload), "--hwmon-temp-abort=" + QString::number (temperature)};
   if (restore) args << "--restore-position";
+  if (attack != 9) args << "--potfile-path=" + dir + "/hashcat.potfile";
   if (optimized) args << "-O";
   if (username) args << "--username";
   if (force) args << "--force";

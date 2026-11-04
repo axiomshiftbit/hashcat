@@ -49,22 +49,54 @@ jobs:
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
           $env:POCL_MAX_PTHREAD_COUNT = '2'
           $env:POCL_CPU_MAX_CU_COUNT = '2'
-          & gui/build/Release/desktop_tests.exe real_hashcat_dictionary -o "$env:RUNNER_TEMP\real-windows.txt",txt
+          & gui/build/Release/desktop_tests.exe real_hashcat_dictionary real_controls_and_restore -o "$env:RUNNER_TEMP\real-windows.txt,txt"
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\real-windows.txt"
+          if ($result) { exit $result }
+      - name: WSL capture conversion
+        shell: pwsh
+        run: |
+          $base = 'https://cdimages.ubuntu.com/ubuntu-wsl/noble/daily-live/current'
+          Invoke-WebRequest "$base/noble-wsl-amd64.wsl" -OutFile "$env:RUNNER_TEMP\ubuntu.wsl"
+          Invoke-WebRequest "$base/SHA256SUMS" -OutFile "$env:RUNNER_TEMP\ubuntu-checksums.txt"
+          $expected = (Get-Content "$env:RUNNER_TEMP\ubuntu-checksums.txt" | Where-Object { $_ -match 'noble-wsl-amd64.wsl$' }).Split(' ')[0]
+          if ((Get-FileHash "$env:RUNNER_TEMP\ubuntu.wsl").Hash -ne $expected) { throw 'Ubuntu digest mismatch' }
+          wsl --import HashcatTest "$env:RUNNER_TEMP\wsl" "$env:RUNNER_TEMP\ubuntu.wsl" --version 1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          wsl --set-default HashcatTest
+          wsl --exec apt-get update
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          wsl --exec apt-get install -y --no-install-recommends hcxtools python3
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:CAPTURE_FIXTURES = "$env:RUNNER_TEMP\capture fixtures"
+          $linuxFixtures = (wsl --exec wslpath -u $env:CAPTURE_FIXTURES).Trim()
+          $generator = (wsl --exec wslpath -u "$env:GITHUB_WORKSPACE\gui\tests\generate_captures.py").Trim()
+          wsl --exec python3 $generator $linuxFixtures
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:HCX_WSL = '1'
+          $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
+          $env:POCL_MAX_PTHREAD_COUNT = '2'
+          & gui/build/Release/desktop_tests.exe real_converter -o "$env:RUNNER_TEMP\converters-windows.txt,txt"
+          $result = $LASTEXITCODE
+          Get-Content "$env:RUNNER_TEMP\converters-windows.txt"
           if ($result) { exit $result }
       - name: Package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force gui/dist/HashcatDesktop | Out-Null
           Copy-Item gui/build/Release/hashcat-desktop.exe gui/dist/HashcatDesktop/
-          windeployqt --release --no-translations --no-opengl-sw gui/dist/HashcatDesktop/hashcat-desktop.exe
+          windeployqt --release --no-translations --no-opengl-sw --no-compiler-runtime gui/dist/HashcatDesktop/hashcat-desktop.exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item "$env:RUNNER_TEMP\engine\hashcat-8.0.0" gui/dist/HashcatDesktop/hashcat -Recurse
-          Copy-Item gui/README.md gui/dist/HashcatDesktop/
+          Copy-Item gui/README*.md gui/dist/HashcatDesktop/
           New-Item -ItemType Directory -Force gui/dist/HashcatDesktop/licenses | Out-Null
           Copy-Item docs/license.txt gui/dist/HashcatDesktop/licenses/hashcat-MIT.txt
-          if (Test-Path C:/Qt/6.10.2/msvc2022_64/licenses) { Copy-Item C:/Qt/6.10.2/msvc2022_64/licenses/* gui/dist/HashcatDesktop/licenses/ -Recurse }
+          Invoke-WebRequest https://download.qt.io/archive/qt/6.10/6.10.2/submodules/qtbase-everywhere-src-6.10.2.tar.xz -OutFile gui/dist/HashcatDesktop/licenses/qtbase-source-6.10.2.tar.xz
+          if ((Get-FileHash gui/dist/HashcatDesktop/licenses/qtbase-source-6.10.2.tar.xz).Hash -ne 'aeb78d29291a2b5fd53cb55950f8f5065b4978c25fb1d77f627d695ab9adf21e') { throw 'Qt source digest mismatch' }
+          tar -xf gui/dist/HashcatDesktop/licenses/qtbase-source-6.10.2.tar.xz -C gui/dist/HashcatDesktop/licenses --strip-components=1 qtbase-everywhere-src-6.10.2/LICENSES
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item C:/Qt/6.10.2/msvc2022_64/sbom gui/dist/HashcatDesktop/licenses/ -Recurse
+          Copy-Item C:/Qt/6.10.2/msvc2022_64/config_qtbase.* gui/dist/HashcatDesktop/licenses/
           Compress-Archive gui/dist/HashcatDesktop gui/dist/HashcatDesktop-Windows-x64.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
@@ -77,8 +109,9 @@ jobs:
           name: Windows-test-results
           path: |
             gui/build/Testing/Temporary/LastTest.log
-            ${{ runner.temp }}/desktop-windows.png
+            ${{ runner.temp }}/desktop-windows.png*
             ${{ runner.temp }}/real-windows.txt
+            ${{ runner.temp }}/converters-windows.txt
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -87,7 +120,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-base-dev ninja-build hashcat pocl-opencl-icd hcxtools xvfb xauth
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-base-dev ninja-build hashcat pocl-opencl-icd ocl-icd-libopencl1 hcxtools xvfb xauth
       - name: Build
         run: cmake -S gui -B gui/build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build gui/build -j2
       - name: Test
@@ -100,10 +133,12 @@ jobs:
         run: |
           python3 gui/tests/generate_captures.py /tmp/desktop-captures
           ctest --test-dir gui/build --output-on-failure
+          QT_QPA_PLATFORM=xcb xvfb-run -a gui/build/desktop_tests ui_queue_language_results_and_reload ui_expert_any_arguments
       - name: Package
         run: |
           mkdir -p gui/dist/HashcatDesktop
-          cp gui/build/hashcat-desktop gui/README.md gui/dist/HashcatDesktop/
+          cp gui/build/hashcat-desktop gui/README*.md gui/dist/HashcatDesktop/
+          cp docs/license.txt gui/dist/HashcatDesktop/LICENSE.txt
           tar -czf gui/dist/HashcatDesktop-Linux-x64.tar.gz -C gui/dist HashcatDesktop
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
@@ -115,4 +150,4 @@ jobs:
           name: Linux-test-results
           path: |
             gui/build/Testing/Temporary/LastTest.log
-            /tmp/desktop-linux.png
+            /tmp/desktop-linux.png*

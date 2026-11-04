@@ -126,7 +126,9 @@ private slots:
     Runner runner; QSignalSpy statuses (&runner, &Runner::status); QSignalSpy logs (&runner, &Runner::line); QSignalSpy done (&runner, &Runner::finished);
     QVERIFY (runner.start (fake, {"--fixture-wait"}, temp.path ()));
     QTRY_VERIFY_WITH_TIMEOUT (statuses.size () > 0, 10000);
-    QVERIFY (logs[0][0].toString ().contains ("TERMINAL_READY"));
+    bool terminal = false;
+    for (const auto &entry : logs) if (entry[0].toString () == "TERMINAL_READY") terminal = true;
+    QVERIFY (terminal);
     QVERIFY (runner.command ('p'));
     QTRY_COMPARE_WITH_TIMEOUT (statuses.last ()[0].toJsonObject ()["status"].toInt (), 4, 10000);
     QVERIFY (runner.command ('r'));
@@ -141,7 +143,12 @@ private slots:
     const QString value = "space ; $(not-executed) & \"quoted\" \\ Юникод";
     QVERIFY (runner.start (fake, {"--fixture-arguments", value}, temp.path (), false));
     QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 10000);
-    const auto array = QJsonDocument::fromJson (logs[0][0].toString ().toUtf8 ()).array ();
+    QJsonArray array;
+    for (const auto &entry : logs)
+    {
+      const auto doc = QJsonDocument::fromJson (entry[0].toString ().toUtf8 ());
+      if (doc.isArray ()) array = doc.array ();
+    }
     QCOMPARE (array[1].toString (), value);
   }
 
@@ -180,7 +187,19 @@ private slots:
     QCOMPARE (window.findChild<QTableWidget *> ("results")->rowCount (), 1);
     QCOMPARE (window.findChild<QTableWidget *> ("results")->item (0, 1)->text (), QString ("sample"));
     const QString screenshot = qEnvironmentVariable ("GUI_SCREENSHOT");
-    if (screenshot.isEmpty () == false) QVERIFY (window.grab ().save (screenshot));
+    if (screenshot.isEmpty () == false)
+    {
+      QVERIFY (window.grab ().save (screenshot));
+      for (int language = 0; language < 2; ++language)
+      {
+        lang->setCurrentIndex (language);
+        for (int page = 0; page < nav->count (); ++page)
+        {
+          nav->setCurrentRow (page); QCoreApplication::processEvents ();
+          QVERIFY (window.grab ().save (screenshot + QString ("-%1-%2.png").arg (language).arg (page)));
+        }
+      }
+    }
     window.close ();
     Window reopened (workspace.path ());
     QCOMPARE (reopened.findChild<QTableWidget *> ("jobs")->rowCount (), 2);
@@ -197,11 +216,23 @@ private slots:
     QTRY_VERIFY (window.engine ()->busy () == false);
   }
 
+  void real_hashcat_dictionary_data ()
+  {
+    QTest::addColumn<int> ("attack");
+    for (int mode : {0, 1, 3, 6, 7, 9}) QTest::newRow (qPrintable (QString::number (mode))) << mode;
+  }
+
   void real_hashcat_dictionary ()
   {
+    QFETCH (int, attack);
     const QString binary = qEnvironmentVariable ("REAL_HASHCAT");
     if (binary.isEmpty ()) QSKIP ("REAL_HASHCAT not supplied");
     Job j = job (); j.binary = binary; j.device_type = 1; j.workload = 1; j.force = true;
+    j.attack = attack;
+    if (attack == 1) { j.dictionary = file ("left.dict", "te\n"); j.dictionary2 = file ("right.dict", "st\n"); }
+    if (attack == 3) j.mask = "test";
+    if (attack == 6) { j.dictionary = file ("left.dict", "te\n"); j.mask = "st"; }
+    if (attack == 7) { j.dictionary = file ("right.dict", "st\n"); j.mask = "te"; }
     const QString directory = j.directory (temp.path ()); QVERIFY (QDir ().mkpath (directory));
     Runner runner; QSignalSpy done (&runner, &Runner::finished);
     QStringList log;
@@ -211,6 +242,43 @@ private slots:
     QVERIFY2 (done[0][0].toInt () == 0, qPrintable (log.join ('\n')));
     QFile results (directory + "/results.txt"); QVERIFY (results.open (QIODevice::ReadOnly));
     QVERIFY (results.readAll ().contains (":74657374"));
+  }
+
+  void real_controls_and_restore ()
+  {
+    const QString binary = qEnvironmentVariable ("REAL_HASHCAT");
+    if (binary.isEmpty ()) QSKIP ("REAL_HASHCAT not supplied");
+    QTemporaryDir workspace;
+    Window window (workspace.path ()); window.show ();
+    Job j = job (); j.binary = binary; j.device_type = 1; j.workload = 1; j.force = true;
+    j.attack = 3; j.mask = "?d?d?d?d?d?d?d?d?d?d?d?d";
+    window.set_form (j);
+    window.findChild<QListWidget *> ("navigation")->setCurrentRow (1);
+    QTest::mouseClick (window.findChild<QPushButton *> ("addJob"), Qt::LeftButton);
+    QSignalSpy done (window.engine (), &Runner::finished);
+    auto *pause = window.findChild<QPushButton *> ("pause");
+    auto *resume = window.findChild<QPushButton *> ("resume");
+    QTest::mouseClick (window.findChild<QPushButton *> ("runSelected"), Qt::LeftButton);
+    QTRY_VERIFY2_WITH_TIMEOUT (pause->isEnabled (), qPrintable (window.findChild<QPlainTextEdit *> ("log")->toPlainText ()), 120000);
+    QVERIFY (resume->isEnabled () == false);
+    QTest::mouseClick (pause, Qt::LeftButton);
+    QTRY_VERIFY_WITH_TIMEOUT (resume->isEnabled (), 10000);
+    QVERIFY (pause->isEnabled () == false);
+    QTest::mouseClick (resume, Qt::LeftButton);
+    QTRY_VERIFY_WITH_TIMEOUT (pause->isEnabled (), 10000);
+    QTest::mouseClick (window.findChild<QPushButton *> ("checkpoint"), Qt::LeftButton);
+    QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 90000);
+    QCOMPARE (done[0][0].toInt (), 3);
+    auto *restore = window.findChild<QPushButton *> ("restore");
+    QVERIFY (restore->isEnabled ());
+    done.clear ();
+    QTest::mouseClick (restore, Qt::LeftButton);
+    QTRY_VERIFY2_WITH_TIMEOUT (pause->isEnabled (), qPrintable (window.findChild<QPlainTextEdit *> ("log")->toPlainText ()), 120000);
+    QTest::mouseClick (window.findChild<QPushButton *> ("stop"), Qt::LeftButton);
+    QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 15000);
+    QCOMPARE (done[0][0].toInt (), 2);
+    QVERIFY (done[0][1].toBool () == false);
+    window.close ();
   }
 
   void converter_missing_tool_and_existing_output ()
@@ -244,6 +312,7 @@ private slots:
     QStringList log; connect (&converter, &Converter::log, &converter, [&log] (const QString &text) { log << text; });
     Conversion request; request.input = QDir (fixtures).filePath (input); request.mode = mode;
     request.output = temp.filePath (input + ".converted"); request.tools_directory = qEnvironmentVariable ("HCX_DIRECTORY");
+    request.wsl = qEnvironmentVariableIsSet ("HCX_WSL");
     QVERIFY (converter.start (request));
     QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 20000);
     QVERIFY2 (done[0][0].toBool (), qPrintable (log.join ('\n')));
@@ -258,6 +327,20 @@ private slots:
         QFile expected (QDir (fixtures).filePath ("expected-pmkid.txt")); QVERIFY (expected.open (QIODevice::ReadOnly));
         QCOMPARE (data.split ('*').mid (0, 6), expected.readAll ().split ('*').mid (0, 6));
       }
+    }
+    const QString binary = qEnvironmentVariable ("REAL_HASHCAT");
+    if ((binary.isEmpty () == false) && QStringList {"synthetic.cap", "synthetic.hccapx", "eap-md5.pcap", "tacacs.pcap"}.contains (input))
+    {
+      Job j = job (); j.binary = binary; j.hashes = request.output; j.hash_mode = mode;
+      j.dictionary = QDir (fixtures).filePath ("dictionary.txt"); j.device_type = 1; j.workload = 1; j.force = true;
+      QVERIFY (QDir ().mkpath (j.directory (temp.path ())));
+      Runner runner; QSignalSpy cracked (&runner, &Runner::finished);
+      QStringList engine_log; connect (&runner, &Runner::line, &runner, [&engine_log] (const QString &line) { engine_log << line; });
+      QVERIFY (runner.start (binary, j.arguments (temp.path ()), QFileInfo (binary).absolutePath ()));
+      QTRY_COMPARE_WITH_TIMEOUT (cracked.size (), 1, 120000);
+      QVERIFY2 (cracked[0][0].toInt () == 0, qPrintable (engine_log.join ('\n')));
+      QFile recovered (j.directory (temp.path ()) + "/results.txt"); QVERIFY (recovered.open (QIODevice::ReadOnly));
+      QVERIFY (recovered.readAll ().contains (QByteArray ("gui-fixture-only").toHex ()));
     }
   }
 };
