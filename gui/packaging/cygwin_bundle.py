@@ -52,6 +52,9 @@ def unpack_packages(archives, root):
     for archive in archives:
         with tarfile.open(archive) as source:
             for member in source:
+                # Unix manual names can contain characters forbidden by Win32.
+                if member.name.lstrip("./").startswith(("usr/share/man/", "usr/share/info/")):
+                    continue
                 target = root / mapped(member.name)
                 if member.isdir():
                     target.mkdir(parents=True, exist_ok=True)

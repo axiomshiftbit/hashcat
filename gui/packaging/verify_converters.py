@@ -21,7 +21,7 @@ def main():
 
     def run(command, success=True):
         result = subprocess.run([str(arg) for arg in command], env=env, cwd=john,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=40)
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=40)
         output = result.stdout.decode("utf-8", errors="replace")
         if success and result.returncode:
             raise RuntimeError(str(command[0]) + "\n" + output)
