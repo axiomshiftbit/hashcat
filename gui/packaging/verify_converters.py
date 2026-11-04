@@ -33,18 +33,20 @@ def main():
         if 0xC0000000 <= result.returncode & 0xFFFFFFFF < 0xD0000000:
             failures.append(str(command[0]) + " crashed: " + hex(result.returncode & 0xFFFFFFFF))
         if success and result.returncode:
-            failures.append(str(command[0]) + "\n" + output)
+            failures.append(str(command[0]) + " (" + str(command[-1]) + ")\n" + output)
         for error in ("ModuleNotFoundError", "ImportError:", "Can't locate ", "error while loading shared libraries"):
             if error in output:
-                failures.append(str(command[0]) + "\n" + output)
+                failures.append(str(command[0]) + " (" + str(command[-1]) + ")\n" + output)
         return output
 
     python, perl = runtime / "python3.12.exe", runtime / "perl.exe"
     pdf_python = root / "tools/python/python.exe"
     run([pdf_python, "-X", "utf8", "-c", "import pyhanko.pdf_utils.reader, cryptography; print(cryptography.__version__)"])
-    run([python, "-c", "import ssl, sqlite3, lxml.etree, olefile, Crypto.Cipher.AES, Crypto.Cipher.DES3, "
-         "pyasn1.codec.ber.decoder, asn1crypto, scapy.all, protobuf.wallet_pb2, "
-         "berkeleydb.db, plyvel, google.protobuf, simplejson; print('Python dependencies OK')"])
+    for module in ("ssl", "sqlite3", "lxml.etree", "olefile", "Crypto.Cipher.AES", "Crypto.Cipher.DES3",
+                   "pyasn1.codec.ber.decoder", "asn1crypto", "scapy.all", "protobuf.wallet_pb2",
+                   "berkeleydb.db", "plyvel", "google.protobuf", "simplejson"):
+        print("Checking Python module:", module, flush=True)
+        run([python, "-c", "import " + module])
     run([perl, "-MCompress::Raw::Lzma", "-MFile::Basename", "-e", "print qq(Perl dependencies OK\\n)"])
     run([root / "tools/hcxtools/hcxpcapngtool.exe", "--version"])
     run([root / "tools/hcxtools/hcxhash2cap.exe", "--version"])

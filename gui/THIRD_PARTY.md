@@ -62,6 +62,8 @@ interpreter, including the Berkeley DB and LevelDB extensions. The older Cygwin
 cryptography package is not distributed. Unix manual pages are omitted and runtime symlinks are
 materialized as regular files for Windows Explorer extraction. No system Cygwin,
 WSL, Python or Perl installation is needed. Linux uses user-installed converters.
+The RADIUS catalog entry selects John's newer Python/Scapy extractor instead of
+the older Perl/Net::Pcap variant.
 
 Berkeley DB 18 and the converter components linking it are redistributed under
 AGPL-3.0 terms. Their complete corresponding sources and notices are included in

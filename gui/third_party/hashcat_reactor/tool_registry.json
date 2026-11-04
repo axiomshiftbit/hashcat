@@ -260,7 +260,7 @@
     "name": "sipdump2john"
   },
   "radius": {
-    "kind": "perl",
+    "kind": "python",
     "name": "radius2john"
   },
   "cisco": {

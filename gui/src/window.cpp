@@ -750,7 +750,7 @@ void Window::retranslate ()
     const QString text = object->property (property).toString ();
     if (text.isEmpty ()) continue;
     if (auto *value = qobject_cast<QLabel *> (object)) value->setText (text);
-    else if (auto *value = qobject_cast<QAbstractButton *> (object)) value->setText (text);
+    else if (auto *button = qobject_cast<QAbstractButton *> (object)) button->setText (text);
   }
   for (auto *combo : findChildren<QComboBox *> ())
   {
