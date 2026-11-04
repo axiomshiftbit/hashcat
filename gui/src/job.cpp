@@ -41,6 +41,8 @@ QString Job::validate () const
     if (mask.contains ('\n') || mask.contains ('\r') || mask.contains (QChar (0))) return t ("The mask must be a single line.", "Маска должна занимать одну строку.");
     if (QFileInfo (mask).isFile () == false)
     {
+      if (QFileInfo (QDir (QFileInfo (binary).absolutePath ()).filePath (mask)).isFile ())
+        return t ("This mask matches a file in the engine directory. Put the literal mask in a .hcmask file, or select the intended file by its full path.", "Маска совпадает с файлом в каталоге движка. Сохраните текст маски в .hcmask либо укажите полный путь к нужному файлу.");
       for (qsizetype i = 0; i < mask.size (); ++i)
       {
         if (mask[i] != '?') continue;

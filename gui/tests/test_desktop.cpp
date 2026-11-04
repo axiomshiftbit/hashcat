@@ -85,6 +85,10 @@ private slots:
     j.charsets[0] = "abc"; QVERIFY (j.validate ().isEmpty ());
     j.mask = "?x"; QVERIFY (j.validate ().isEmpty () == false);
     j.mask = "abc?"; QVERIFY (j.validate ().isEmpty () == false);
+    j.mask = QFileInfo (fake).fileName ();
+    const QString cwd = QDir::currentPath (); QVERIFY (QDir::setCurrent (temp.path ()));
+    const QString collision = j.validate ();
+    QVERIFY (QDir::setCurrent (cwd)); QVERIFY (collision.isEmpty () == false);
     j.mask = "?d?d"; j.increment = true; j.minimum = 8; j.maximum = 2; QVERIFY (j.validate ().isEmpty () == false);
     j = job (); j.extra = {"--outfile=/tmp/escape"}; QVERIFY (j.validate ().isEmpty () == false);
     j.extra = {"--encoding-from=UTF-8"}; QVERIFY (j.validate ().isEmpty ());
@@ -249,18 +253,21 @@ private slots:
   void real_hashcat_dictionary_data ()
   {
     QTest::addColumn<int> ("attack");
-    for (int mode : {0, 1, 3, 6, 7, 9}) QTest::newRow (qPrintable (QString::number (mode))) << mode;
+    QTest::addColumn<bool> ("mask_file");
+    for (int mode : {0, 1, 3, 6, 7, 9}) QTest::newRow (qPrintable (QString::number (mode))) << mode << false;
+    QTest::newRow ("mask-file") << 3 << true;
   }
 
   void real_hashcat_dictionary ()
   {
     QFETCH (int, attack);
+    QFETCH (bool, mask_file);
     const QString binary = qEnvironmentVariable ("REAL_HASHCAT");
     if (binary.isEmpty ()) QSKIP ("REAL_HASHCAT not supplied");
     Job j = job (); j.binary = binary; j.device_type = 1; j.workload = 1; j.force = true;
     j.attack = attack;
     if (attack == 1) { j.dictionary = file ("left.dict", "te\n"); j.dictionary2 = file ("right.dict", "st\n"); }
-    if (attack == 3) j.mask = "test";
+    if (attack == 3) j.mask = mask_file ? file ("literal.hcmask", "test\n") : QString ("tes?l");
     if (attack == 6) { j.dictionary = file ("left.dict", "te\n"); j.mask = "st"; }
     if (attack == 7) { j.dictionary = file ("right.dict", "st\n"); j.mask = "te"; }
     const QString directory = j.directory (temp.path ()); QVERIFY (QDir ().mkpath (directory));
@@ -269,7 +276,8 @@ private slots:
     connect (&runner, &Runner::line, &runner, [&log] (const QString &text) { log << text; });
     QVERIFY (runner.start (binary, j.arguments (temp.path ()), QFileInfo (binary).absolutePath ()));
     QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 120000);
-    QVERIFY2 (done[0][0].toInt () == 0, qPrintable (log.join ('\n')));
+    if (done[0][0].toInt () != 0) for (const QString &line : log) qWarning ().noquote () << line;
+    QCOMPARE (done[0][0].toInt (), 0);
     QFile results (directory + "/results.txt"); QVERIFY (results.open (QIODevice::ReadOnly));
     QVERIFY (results.readAll ().contains (":74657374"));
   }
