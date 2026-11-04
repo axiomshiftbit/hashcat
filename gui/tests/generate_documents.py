@@ -29,3 +29,7 @@ plain_file = destination / "fixture.txt"
 plain_file.write_text("Synthetic archive fixture, contains no user data.\n", encoding="utf-8")
 subprocess.run(["7z", "a", "-m0=lzma", "-mhe=on", "-p" + password,
                 str(archive), str(plain_file)], check=True, stdout=subprocess.DEVNULL)
+archive = destination / "synthetic.zip"
+archive.unlink(missing_ok=True)
+subprocess.run(["7z", "a", "-tzip", "-mem=AES256", "-p" + password,
+                str(archive), str(plain_file)], check=True, stdout=subprocess.DEVNULL)

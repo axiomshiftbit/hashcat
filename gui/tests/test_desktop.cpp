@@ -383,6 +383,7 @@ private slots:
   {
     QTest::addColumn<QString> ("format");
     QTest::newRow ("PDF") << "pdf"; QTest::newRow ("Office") << "docx"; QTest::newRow ("7z") << "7z";
+    if (qEnvironmentVariableIsSet ("BUNDLED_TOOL_TEST")) QTest::newRow ("ZIP native") << "zip";
   }
 
   void real_document_extraction ()
@@ -417,7 +418,7 @@ private slots:
     QTRY_VERIFY_WITH_TIMEOUT (window.findChild<QPushButton *> ("extractStart")->isEnabled (), 180000);
     QVERIFY2 (window.findChild<QPushButton *> ("extractUse")->isEnabled (), qPrintable (window.findChild<QPlainTextEdit *> ("extractLog")->toPlainText ()));
     auto *modes = window.findChild<QComboBox *> ("extractModes");
-    const int mode = format == "pdf" ? 10500 : format == "7z" ? 11600 : 9600;
+    const int mode = format == "pdf" ? 10500 : format == "7z" ? 11600 : format == "zip" ? 13600 : 9600;
     QVERIFY (modes->findData (mode) >= 0); modes->setCurrentIndex (modes->findData (mode));
     window.findChild<QPushButton *> ("extractUse")->click ();
     QCOMPARE (window.form_job ().hashes, hashfile); QCOMPARE (window.form_job ().hash_mode, mode);
