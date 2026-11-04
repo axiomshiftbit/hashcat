@@ -9,14 +9,14 @@ output=$(cygpath -u "$2")
 packaging=$(cygpath -u "$3")
 
 cd "$work/sources/hcxtools"
-make -j2 PRODUCTION=1 hcxpcapngtool hcxhash2cap
+make -j4 PRODUCTION=1 hcxpcapngtool hcxhash2cap
 mkdir -p "$output/tools/hcxtools"
 cp hcxpcapngtool.exe hcxhash2cap.exe "$output/tools/hcxtools/"
 cp license.txt "$output/tools/hcxtools/LICENSE.txt"
 
 cd "$work/sources/john/src"
 ./configure --disable-native-tests --disable-simd --disable-openmp --disable-opencl --disable-pcap
-make -j2
+make -j4
 mkdir -p "$output/tools/john"
 cp -r ../run ../doc ../README.md "$output/tools/john/"
 # The maintained Berkeley DB binding preserves the API used by bitcoin2john.

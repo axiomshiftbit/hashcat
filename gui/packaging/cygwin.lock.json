@@ -240,6 +240,7 @@
     "python312-webencodings",
     "python312-wheel",
     "python312-zipp",
+    "rebase",
     "sed",
     "shared-mime-info",
     "tar",
@@ -2528,6 +2529,19 @@
         "path": "x86_64/release/grep/grep-3.12-1-src.tar.xz",
         "size": 1922824,
         "sha512": "0890bfdbe2ade72d1f9ddccfa3782af054ddbdd8a831446fb01e5e567491910dc64de10ed73668aabfe97ecd255af500ba1d3ee9ec1e8f94131916f93dcd5920"
+      }
+    },
+    "rebase": {
+      "version": "4.6.6-1",
+      "install": {
+        "path": "x86_64/release/rebase/rebase-4.6.6-1.tar.xz",
+        "size": 248832,
+        "sha512": "9f3751c4687b09f3c286cf5c4522a0d976fce2d79ab471ab37560b15f14af84f7d13162b6102c02d0d60784448ff0586e76e9291675af4fa0c9320a3713633da"
+      },
+      "source": {
+        "path": "x86_64/release/rebase/rebase-4.6.6-1-src.tar.xz",
+        "size": 110220,
+        "sha512": "c7a3717798a2c719b8a1835b6886ce7f3e6030e99383614b8296754400a358e69aa05bf147e62f12d4a5d0b9729b0b08e062771a820e65678f6f12627bf2b026"
       }
     }
   }
