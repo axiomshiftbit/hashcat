@@ -94,7 +94,16 @@ QString Job::validate () const
   if (QSet<int> {0, 1, 3, 4, 5, 6, 7, 8, 9, 12}.contains (attack) == false) return t ("This attack is not supported by the form. Use Commands.", "Режим атаки не поддерживается формой.");
   const HashcatOptions options = command_options ();
   for (const QString &path : options.wordlists)
-    if ((readable (path) == false) && (QFileInfo (path).isDir () == false)) return t ("Dictionary is missing: ", "Словарь не найден: ") + path;
+  {
+    bool usable = readable (path);
+    if (QFileInfo (path).isDir ())
+    {
+      // Hashcat scans only non-dot files directly inside the folder.
+      for (const auto &entry : QDir (path).entryInfoList (QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot))
+        if (!entry.fileName ().startsWith ('.') && entry.isReadable ()) { usable = true; break; }
+    }
+    if (!usable) return t ("Dictionary is missing, unreadable or the folder has no usable files: ", "Словарь недоступен или каталог не содержит подходящих файлов: ") + path;
+  }
   QString detail;
   using Error = HelperUtils::LaunchError;
   const Error option_error = HelperUtils::validateOptions (options, &detail);

@@ -4,7 +4,10 @@ on:
 permissions:
   contents: read
 jobs:
+  converters:
+    uses: ./.github/workflows/converters.yml
   windows:
+    needs: converters
     runs-on: windows-2022
     timeout-minutes: 40
     steps:
@@ -17,13 +20,17 @@ jobs:
       - name: Qt
         shell: pwsh
         run: |
-          python -m pip install aqtinstall==3.3.0
-          python -m aqt install-qt windows desktop 6.10.2 win64_msvc2022_64 --archives qtbase -O C:\Qt
-          "C:\Qt\6.10.2\msvc2022_64\bin" >> $env:GITHUB_PATH
+          curl.exe --fail --location --silent --show-error --retry 2 --max-time 180 'https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6120/qt6_6120_msvc2022_64/qt.qt6.6120.win64_msvc2022_64/6.12.0-0-202609280346qtbase-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z' --output "$env:RUNNER_TEMP\qtbase.7z"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if ((Get-FileHash "$env:RUNNER_TEMP\qtbase.7z").Hash -ne '219d1b86def3be418e31d704572bc4acc91b2ec373c65595c9fb12b42bf098dc') { throw 'Qt binary digest mismatch' }
+          7z x "$env:RUNNER_TEMP\qtbase.7z" -oC:\Qt\6.12.0\msvc2022_64 -y
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "[Paths]`nPrefix=.." | Set-Content C:/Qt/6.12.0/msvc2022_64/bin/qt.conf
+          "C:\Qt\6.12.0\msvc2022_64\bin" >> $env:GITHUB_PATH
       - name: Build
         shell: pwsh
         run: |
-          cmake -S gui -B gui/build -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/6.10.2/msvc2022_64
+          cmake -S gui -B gui/build -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build gui/build --config Release --parallel 2
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -62,77 +69,36 @@ jobs:
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\real-windows.txt"
           if ($result) { exit $result }
-      - name: Document extraction integration
-        shell: pwsh
-        run: |
-          python -m pip install pypdf==6.21.4 pyhanko==0.38.1 msoffcrypto-tool==6.1.0 python-docx==1.2.0
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $env:JOHN_RUN = "$env:RUNNER_TEMP\john-tools"
-          New-Item -ItemType Directory -Force $env:JOHN_RUN | Out-Null
-          foreach ($tool in @('pdf2john.py', 'office2john.py', '7z2john.pl')) {
-            Invoke-WebRequest "https://raw.githubusercontent.com/openwall/john/5184bc0b8c105f8c5978b112e723d65b2de3e63e/run/$tool" -OutFile "$env:JOHN_RUN\$tool"
-          }
-          $env:DOCUMENT_FIXTURES = "$env:RUNNER_TEMP\document fixtures"
-          $env:TEST_PYTHON = (Get-Command python).Source
-          $perl = Get-Command perl -ErrorAction SilentlyContinue
-          if ($perl) {
-            & $perl.Source -MCompress::Raw::Lzma -e 1 2>$null
-            if ($LASTEXITCODE -eq 0) { $env:TEST_PERL = $perl.Source }
-          }
-          python gui/tests/generate_documents.py $env:DOCUMENT_FIXTURES
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
-          $env:GUI_SCREENSHOT = "$env:RUNNER_TEMP\documents-windows.png"
-          & gui/build/Release/desktop_tests.exe real_document_extraction -o "$env:RUNNER_TEMP\documents-windows.txt,txt"
-          $result = $LASTEXITCODE
-          Get-Content "$env:RUNNER_TEMP\documents-windows.txt"
-          if ($result) { exit $result }
-      - name: WSL capture conversion
-        shell: pwsh
-        run: |
-          $base = 'https://cdimages.ubuntu.com/ubuntu-wsl/noble/daily-live/current'
-          Invoke-WebRequest "$base/noble-wsl-amd64.wsl" -OutFile "$env:RUNNER_TEMP\ubuntu.wsl"
-          Invoke-WebRequest "$base/SHA256SUMS" -OutFile "$env:RUNNER_TEMP\ubuntu-checksums.txt"
-          $expected = (Get-Content "$env:RUNNER_TEMP\ubuntu-checksums.txt" | Where-Object { $_ -match 'noble-wsl-amd64.wsl$' }).Split(' ')[0]
-          if ((Get-FileHash "$env:RUNNER_TEMP\ubuntu.wsl").Hash -ne $expected) { throw 'Ubuntu digest mismatch' }
-          wsl --import HashcatTest "$env:RUNNER_TEMP\wsl" "$env:RUNNER_TEMP\ubuntu.wsl" --version 1
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          wsl --set-default HashcatTest
-          wsl --exec apt-get update
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          wsl --exec apt-get install -y --no-install-recommends hcxtools python3
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $env:CAPTURE_FIXTURES = "$env:RUNNER_TEMP\capture fixtures"
-          $linuxFixtures = (wsl --exec wslpath -u $env:CAPTURE_FIXTURES).Trim()
-          $generator = (wsl --exec wslpath -u "$env:GITHUB_WORKSPACE\gui\tests\generate_captures.py").Trim()
-          wsl --exec python3 $generator $linuxFixtures
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $env:HCX_WSL = '1'
-          $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
-          & gui/build/Release/desktop_tests.exe real_converter ui_converter_to_task -o "$env:RUNNER_TEMP\converters-windows.txt,txt"
-          $result = $LASTEXITCODE
-          Get-Content "$env:RUNNER_TEMP\converters-windows.txt"
-          if ($result) { exit $result }
       - name: Qt sources and licenses
         shell: pwsh
         run: |
-          curl.exe --fail --location --silent --show-error --retry 2 --max-time 180 https://master.qt.io/archive/qt/6.10/6.10.2/submodules/qtbase-everywhere-src-6.10.2.tar.xz --output "$env:RUNNER_TEMP\qtbase-source-6.10.2.tar.xz"
+          curl.exe --fail --location --silent --show-error --retry 2 --max-time 180 https://master.qt.io/archive/qt/6.12/6.12.0/submodules/qtbase-everywhere-src-6.12.0.tar.xz --output "$env:RUNNER_TEMP\qtbase-source-6.12.0.tar.xz"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          if ((Get-FileHash "$env:RUNNER_TEMP\qtbase-source-6.10.2.tar.xz").Hash -ne 'aeb78d29291a2b5fd53cb55950f8f5065b4978c25fb1d77f627d695ab9adf21e') { throw 'Qt source digest mismatch' }
+          if ((Get-FileHash "$env:RUNNER_TEMP\qtbase-source-6.12.0.tar.xz").Hash -ne 'a951bd163c7b80fc6b8c88d7668fb56abf91c152373e13c10666763238131307') { throw 'Qt source digest mismatch' }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: Windows-converter-bundle
+          path: gui/downloaded-tools
       - name: Deploy Windows runtime
         timeout-minutes: 5
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force gui/dist/HashcatDesktop | Out-Null
+          7z x gui/downloaded-tools/converter-bundle.zip -ogui/dist/HashcatDesktop -y
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item gui/build/Release/hashcat-desktop.exe gui/dist/HashcatDesktop/
           windeployqt --release --no-translations --no-opengl-sw --no-compiler-runtime gui/dist/HashcatDesktop/hashcat-desktop.exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item "$env:RUNNER_TEMP\engine\hashcat-8.0.0" gui/dist/HashcatDesktop/hashcat -Recurse
           if (Test-Path gui/dist/HashcatDesktop/hashcat/cache) { Remove-Item gui/dist/HashcatDesktop/hashcat/cache -Recurse -Force }
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $crt = Get-Item "$vs\VC\Redist\MSVC\*\x64\Microsoft.VC143.CRT" | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $crt) { throw 'MSVC redistributable DLL directory not found' }
+          Copy-Item "$($crt.FullName)\*.dll" gui/dist/HashcatDesktop/
           Copy-Item gui/README*.md gui/dist/HashcatDesktop/
           Copy-Item gui/LICENSE gui/dist/HashcatDesktop/LICENSE.txt
           Copy-Item gui/THIRD_PARTY.md gui/dist/HashcatDesktop/
-          git archive --format=tar.gz --output=gui/dist/HashcatDesktop/HashcatDesktop-source.tar.gz HEAD gui .github/workflows/desktop.yml docs/license.txt docs/credits.txt
+          git archive --format=tar.gz --output=gui/dist/HashcatDesktop/HashcatDesktop-source.tar.gz HEAD gui .github/workflows/desktop.yml .github/workflows/converters.yml docs/license.txt docs/credits.txt
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Include Qt sources and notices
         timeout-minutes: 3
@@ -140,25 +106,58 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force gui/dist/HashcatDesktop/licenses | Out-Null
           Copy-Item docs/license.txt gui/dist/HashcatDesktop/licenses/hashcat-MIT.txt
-          Copy-Item "$env:RUNNER_TEMP\qtbase-source-6.10.2.tar.xz" gui/dist/HashcatDesktop/licenses/
-          python gui/tests/package_qt_notices.py gui/dist/HashcatDesktop/licenses/qtbase-source-6.10.2.tar.xz gui/dist/HashcatDesktop/licenses
+          Copy-Item "$env:RUNNER_TEMP\qtbase-source-6.12.0.tar.xz" gui/dist/HashcatDesktop/licenses/
+          python gui/tests/package_qt_notices.py gui/dist/HashcatDesktop/licenses/qtbase-source-6.12.0.tar.xz gui/dist/HashcatDesktop/licenses
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          Copy-Item C:/Qt/6.10.2/msvc2022_64/sbom gui/dist/HashcatDesktop/licenses/ -Recurse
-          Copy-Item C:/Qt/6.10.2/msvc2022_64/config_qtbase.* gui/dist/HashcatDesktop/licenses/
-      - name: Packaged Windows startup
-        timeout-minutes: 1
+          Copy-Item C:/Qt/6.12.0/msvc2022_64/sbom gui/dist/HashcatDesktop/licenses/ -Recurse
+          Copy-Item C:/Qt/6.12.0/msvc2022_64/config_qtbase.* gui/dist/HashcatDesktop/licenses/
+      - name: Test relocated package and bundled converters
+        timeout-minutes: 12
         shell: pwsh
         run: |
-          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notlike 'C:\Qt\*' }) -join ';'
-          $app = Start-Process gui/dist/HashcatDesktop/hashcat-desktop.exe -ArgumentList '--data-dir', "$env:RUNNER_TEMP\package-smoke" -PassThru
+          python -m pip install pypdf==6.21.4 msoffcrypto-tool==6.1.0 python-docx==1.2.0
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:DOCUMENT_FIXTURES = "$env:RUNNER_TEMP\document fixtures"
+          python gui/tests/generate_documents.py $env:DOCUMENT_FIXTURES
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $package = "$env:RUNNER_TEMP\Перенос приложения\Hashcat Desktop"
+          New-Item -ItemType Directory -Force (Split-Path $package) | Out-Null
+          Move-Item gui/dist/HashcatDesktop $package
+          python gui/packaging/verify_converters.py $package
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:PATH = "$package\tools\cygwin\bin;$env:PATH"
+          $env:CAPTURE_FIXTURES = "$env:RUNNER_TEMP\capture fixtures"
+          python gui/tests/generate_captures.py $env:CAPTURE_FIXTURES --hash2cap "$package\tools\hcxtools\hcxhash2cap.exe"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item gui/build/Release/desktop_tests.exe,gui/build/Release/fake_hashcat.exe $package/
+          Copy-Item C:/Qt/6.12.0/msvc2022_64/bin/Qt6Test.dll $package/
+          $env:REAL_HASHCAT = "$package\hashcat\hashcat.exe"
+          $env:HCX_DIRECTORY = "$package\tools\hcxtools"
+          $env:BUNDLED_TOOL_TEST = '1'
+          $env:GUI_SCREENSHOT = "$env:RUNNER_TEMP\documents-windows.png"
+          $env:PATH = "$env:RUNNER_TEMP\intel-opencl\Library\bin;$env:SystemRoot\System32;$env:SystemRoot"
+          & "$package\desktop_tests.exe" damaged_workspace_is_preserved real_document_extraction real_converter ui_converter_to_task -o "$env:RUNNER_TEMP\bundled-windows.txt,txt"
+          $result = $LASTEXITCODE
+          Get-Content "$env:RUNNER_TEMP\bundled-windows.txt"
+          if ($result) { exit $result }
+          $app = Start-Process "$package\hashcat-desktop.exe" -ArgumentList '--data-dir', "$env:RUNNER_TEMP\package-smoke" -PassThru
           try {
             Start-Sleep -Seconds 3
             if ($app.HasExited) { throw "Packaged application exited: $($app.ExitCode)" }
           } finally {
             if (-not $app.HasExited) { Stop-Process -Id $app.Id }
           }
+          # Retain a separate test harness artifact for testing the exact package.
+          New-Item -ItemType Directory -Force gui/test-harness | Out-Null
+          Move-Item "$package/desktop_tests.exe","$package/fake_hashcat.exe","$package/Qt6Test.dll" gui/test-harness/
+          Move-Item $package gui/dist/HashcatDesktop
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: Windows-test-harness
+          path: gui/test-harness
+          if-no-files-found: error
       - name: Archive Windows package
-        timeout-minutes: 3
+        timeout-minutes: 7
         shell: pwsh
         working-directory: gui/dist
         run: |
@@ -179,7 +178,7 @@ jobs:
             ${{ runner.temp }}/desktop-windows.png*
             ${{ runner.temp }}/real-windows.txt
             ${{ runner.temp }}/converters-windows.txt
-            ${{ runner.temp }}/documents-windows.txt
+            ${{ runner.temp }}/bundled-windows.txt
             ${{ runner.temp }}/documents-windows.png*
   linux:
     runs-on: ubuntu-24.04
@@ -235,7 +234,7 @@ jobs:
           cp gui/build/hashcat-desktop gui/README*.md gui/dist/HashcatDesktop/
           cp gui/LICENSE gui/dist/HashcatDesktop/LICENSE.txt
           cp gui/THIRD_PARTY.md gui/dist/HashcatDesktop/
-          git archive --format=tar.gz --output=gui/dist/HashcatDesktop/HashcatDesktop-source.tar.gz HEAD gui .github/workflows/desktop.yml docs/license.txt docs/credits.txt
+          git archive --format=tar.gz --output=gui/dist/HashcatDesktop/HashcatDesktop-source.tar.gz HEAD gui .github/workflows/desktop.yml .github/workflows/converters.yml docs/license.txt docs/credits.txt
           tar -czf gui/dist/HashcatDesktop-Linux-x64.tar.gz -C gui/dist HashcatDesktop
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:

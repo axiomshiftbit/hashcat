@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QProcess>
+#include "managed_process.h"
 #include <QTimer>
 
 class Runner : public QObject
@@ -29,13 +30,12 @@ private:
   void drain ();
   void consume (const QByteArray &bytes, bool final = false);
   void release_input ();
-  QProcess process;
+  ManagedProcess process;
   QByteArray pending;
   QTimer deadline;
   bool emitted = false, accepting_commands = false;
 #ifdef Q_OS_WIN
   void *input = nullptr;
-  void *job_handle = nullptr;
 #else
   int master_fd = -1, slave_fd = -1;
 #endif

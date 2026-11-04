@@ -3,12 +3,13 @@
 // Tools remain separate dependencies. Results require Hashcat identification.
 #include "extractor.h"
 #include "lang.h"
+#include "bundled_tools.h"
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QRegularExpression>
-#include <QSaveFile>
+#include <QTemporaryFile>
 #include <QStandardPaths>
 #include <QSet>
 
@@ -80,6 +81,7 @@ Extractor::Extractor (QObject *parent) : QObject (parent)
       identifying = true;
       emit log (t ("Checking compatibility with the selected Hashcat…", "Проверка совместимости с выбранным Hashcat…"));
       process.setWorkingDirectory (QFileInfo (config.hashcat).absolutePath ());
+      process.setProcessEnvironment (QProcessEnvironment::systemEnvironment ());
       process.start (config.hashcat, {"--quiet", "--identify", "--machine-readable", temporary->filePath ("input.hashes")});
       timeout.start (180000);
       return;
@@ -121,13 +123,16 @@ bool Extractor::start (const Extraction &request)
   {
     args.prepend (program);
     program = config.interpreter;
+    if (program.isEmpty ()) program = bundled_interpreter (suffix, config.tool);
     if (program.isEmpty ()) program = QStandardPaths::findExecutable (suffix == "pl" ? "perl" : "python3");
     if (program.isEmpty () && suffix == "py") program = QStandardPaths::findExecutable ("python");
     if (program.isEmpty ()) { emit log (t ("Install/select the Python or Perl interpreter required by this tool.", "Установите/выберите нужный конвертеру Python или Perl.")); return false; }
+    if (program == bundled_tool ("python/python.exe")) args = QStringList {"-X", "utf8"} + args;
   }
   args << config.input;
   buffer.clear (); hashes.clear (); active = true; canceled = false; identifying = false;
   process.setWorkingDirectory (QFileInfo (config.tool).absolutePath ());
+  process.setProcessEnvironment (tool_environment (program));
   process.start (program, args); timeout.start (180000);
   return true;
 }
@@ -149,12 +154,13 @@ void Extractor::complete (bool success, const QList<int> &modes)
   timeout.stop ();
   if (success)
   {
-    QSaveFile out (config.output);
-    success = !QFileInfo::exists (config.output) && out.open (QIODevice::WriteOnly);
+    QTemporaryFile out (config.output + ".XXXXXX");
+    success = !QFileInfo::exists (config.output) && out.open ();
     if (success)
     {
       out.setPermissions (QFileDevice::ReadOwner | QFileDevice::WriteOwner);
-      success = out.write (hashes) == hashes.size () && out.commit ();
+      success = out.write (hashes) == hashes.size () && out.flush () && out.rename (config.output);
+      if (success) out.setAutoRemove (false);
     }
   }
   if (!success) emit log (t ("Extraction failed or format is incompatible. No output file was saved.", "Извлечение не удалось или формат несовместим. Файл результата не сохранён."));

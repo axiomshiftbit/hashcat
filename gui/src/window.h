@@ -65,6 +65,7 @@ private:
   QTimer probe_timer;
   QByteArray probe_output;
   QString help_text;
+  bool workspace_writable = true;
   bool probe_modes = false, modern_restore = false, stop_requested = false, expert = false, loading = false;
   int active = -1;
   int pending_restore = -1;

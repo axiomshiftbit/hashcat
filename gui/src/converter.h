@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include "managed_process.h"
 #include <QTemporaryDir>
 #include <memory>
 
@@ -34,7 +35,7 @@ private:
   void drain ();
   QString tool (const QString &name) const;
   Conversion config;
-  QProcess process;
+  ManagedProcess process;
   std::unique_ptr<QTemporaryDir> temporary;
   QList<QPair<QString, QStringList>> steps;
   QString source_path, work_path;

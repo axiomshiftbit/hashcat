@@ -14,7 +14,7 @@ add_library(hashcat_commandbuilder
   third_party/hashcat_gui/src/settingsmanager.cpp)
 target_include_directories(hashcat_commandbuilder PUBLIC third_party/hashcat_gui/src)
 target_link_libraries(hashcat_commandbuilder PUBLIC Qt6::Widgets Qt6::Concurrent)
-add_library(desktop_core src/job.cpp src/runner.cpp src/converter.cpp src/extractor.cpp)
+add_library(desktop_core src/job.cpp src/runner.cpp src/converter.cpp src/extractor.cpp src/bundled_tools.cpp src/managed_process.cpp)
 qt_add_resources(desktop_core "extractor_registry" PREFIX "/" FILES third_party/hashcat_reactor/tool_registry.json)
 target_include_directories(desktop_core PUBLIC src)
 target_link_libraries(desktop_core PUBLIC Qt6::Widgets hashcat_commandbuilder)

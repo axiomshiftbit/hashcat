@@ -7,6 +7,7 @@
 #include "pathlist.h"
 #include "advancedform.h"
 #include "telemetry.h"
+#include "bundled_tools.h"
 
 #include <QtTest>
 #include <QCheckBox>
@@ -95,6 +96,12 @@ private slots:
     j.mask = "?d?d"; j.increment = true; j.minimum = 8; j.maximum = 2; QVERIFY (j.validate ().isEmpty () == false);
     j = job (); j.extra = {"--outfile=/tmp/escape"}; QVERIFY (j.validate ().isEmpty () == false);
     j.extra = {"--encoding-from=UTF-8"}; QVERIFY (j.validate ().isEmpty ());
+    QTemporaryDir dictionaries; j = job (); j.dictionary = dictionaries.path ();
+    QVERIFY (!j.validate ().isEmpty ());
+    QFile hidden (dictionaries.filePath (".hidden")); QVERIFY (hidden.open (QIODevice::WriteOnly)); hidden.write ("fixture\n"); hidden.close ();
+    QVERIFY (!j.validate ().isEmpty ());
+    QVERIFY (hidden.rename (dictionaries.filePath ("visible.txt")));
+    QVERIFY (j.validate ().isEmpty ());
   }
 
   void profiles_and_restore_arguments ()
@@ -171,6 +178,28 @@ private slots:
     QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 10000); QVERIFY (done[0][1].toBool ());
   }
 
+  void cancellation_stops_descendants ()
+  {
+    const QString marker = file ("child heartbeat.txt", "");
+    Runner runner; QSignalSpy done (&runner, &Runner::finished);
+    QVERIFY (runner.start (fake, {"--fixture-parent", marker}, temp.path (), false));
+    QTRY_VERIFY (QFileInfo (marker).size () > 0);
+    runner.kill (); QTRY_COMPARE (done.size (), 1);
+    QTest::qWait (150);
+    const qint64 stopped_size = QFileInfo (marker).size ();
+    QTest::qWait (350); QCOMPARE (QFileInfo (marker).size (), stopped_size);
+    Extractor extractor; QSignalSpy extracted (&extractor, &Extractor::finished);
+    Extraction request; request.tool = fake; request.hashcat = fake; request.input = marker;
+    request.output = temp.filePath ("cancelled-child.hashes"); request.arguments = {"--fixture-parent"};
+    QVERIFY (extractor.start (request));
+    QTRY_VERIFY (QFileInfo (marker).size () > stopped_size);
+    extractor.cancel (); QTRY_COMPARE (extracted.size (), 1);
+    QTest::qWait (150);
+    const qint64 canceled_size = QFileInfo (marker).size ();
+    QTest::qWait (350); QCOMPARE (QFileInfo (marker).size (), canceled_size);
+    QVERIFY (!QFileInfo::exists (request.output));
+  }
+
   void ui_queue_language_results_and_reload ()
   {
     QTemporaryDir workspace;
@@ -230,6 +259,23 @@ private slots:
     QTRY_VERIFY (window.engine ()->busy () == false);
   }
 
+  void damaged_workspace_is_preserved ()
+  {
+    const QList<QByteArray> inputs {"{broken", "[]", "{\"version\":2,\"jobs\":[]}",
+      "{\"version\":1,\"jobs\":[{\"id\":\"../escape\"}]}",
+      "{\"version\":1,\"jobs\":[{\"id\":\"same\"},{\"id\":\"same\"}]}"};
+    for (const auto &bytes : inputs)
+    {
+      QTemporaryDir workspace;
+      QFile state (workspace.filePath ("workspace.json"));
+      QVERIFY (state.open (QIODevice::WriteOnly)); QCOMPARE (state.write (bytes), bytes.size ()); state.close ();
+      Window window (workspace.path ()); window.show ();
+      window.findChild<QComboBox *> ("language")->setCurrentIndex (1);
+      window.close ();
+      QVERIFY (state.open (QIODevice::ReadOnly)); QCOMPARE (state.readAll (), bytes);
+    }
+  }
+
   void ui_converter_to_task ()
   {
     const QString fixtures = qEnvironmentVariable ("CAPTURE_FIXTURES");
@@ -239,8 +285,16 @@ private slots:
     const QString output = workspace.filePath ("converted hashes.txt");
     window.findChild<QLineEdit *> ("conversionInput")->setText (QDir (fixtures).filePath ("synthetic.pcapng"));
     window.findChild<QLineEdit *> ("conversionOutput")->setText (output);
-    window.findChild<QLineEdit *> ("hcxDirectory")->setText (qEnvironmentVariable ("HCX_DIRECTORY"));
-    window.findChild<QCheckBox *> ("useWsl")->setChecked (qEnvironmentVariableIsSet ("HCX_WSL"));
+    if (!qEnvironmentVariableIsSet ("BUNDLED_TOOL_TEST"))
+    {
+      window.findChild<QLineEdit *> ("hcxDirectory")->setText (qEnvironmentVariable ("HCX_DIRECTORY"));
+      window.findChild<QCheckBox *> ("useWsl")->setChecked (qEnvironmentVariableIsSet ("HCX_WSL"));
+    }
+    else
+    {
+      QCOMPARE (window.findChild<QLineEdit *> ("hcxDirectory")->text (), bundled_tool ("hcxtools"));
+      QVERIFY (!window.findChild<QCheckBox *> ("useWsl")->isChecked ());
+    }
     QTest::mouseClick (window.findChild<QPushButton *> ("convert"), Qt::LeftButton);
     // Changing the form must not alter the mode of the in-flight conversion.
     window.findChild<QComboBox *> ("conversionMode")->setCurrentIndex (1);
@@ -305,6 +359,12 @@ private slots:
     QCOMPARE (qvariant_cast<QList<int>> (done[0][2]), QList<int> ({10500, 10600}));
     QFile hash (request.output); QVERIFY (hash.open (QIODevice::ReadOnly)); QCOMPARE (hash.readAll (), QByteArray ("$pdf$fixture\n")); hash.close ();
     QVERIFY (!extractor.start (request));
+    request.output = temp.filePath ("concurrent-output.hash"); request.arguments = {"--fixture-delayed-extract"}; done.clear ();
+    QVERIFY (extractor.start (request));
+    file ("concurrent-output.hash", "created while extracting");
+    QTRY_COMPARE (done.size (), 1); QVERIFY (!done[0][0].toBool ());
+    QFile concurrent (request.output); QVERIFY (concurrent.open (QIODevice::ReadOnly));
+    QCOMPARE (concurrent.readAll (), QByteArray ("created while extracting"));
     request.output = temp.filePath ("incompatible.hash"); request.arguments = {"--fixture-incompatible"}; done.clear ();
     QVERIFY (extractor.start (request)); QTRY_COMPARE (done.size (), 1); QVERIFY (!done[0][0].toBool ()); QVERIFY (!QFileInfo::exists (request.output));
     request.arguments = {"--fixture-empty"}; done.clear ();
@@ -330,16 +390,26 @@ private slots:
     QFETCH (QString, format);
     const QString fixtures = qEnvironmentVariable ("DOCUMENT_FIXTURES"), john = qEnvironmentVariable ("JOHN_RUN");
     const QString binary = qEnvironmentVariable ("REAL_HASHCAT"), python = qEnvironmentVariable ("TEST_PYTHON");
-    if (fixtures.isEmpty () || john.isEmpty () || binary.isEmpty () || python.isEmpty ()) QSKIP ("Document integration dependencies not supplied");
+    const bool bundled = qEnvironmentVariableIsSet ("BUNDLED_TOOL_TEST");
+    if (fixtures.isEmpty () || binary.isEmpty () || (!bundled && (john.isEmpty () || python.isEmpty ()))) QSKIP ("Document integration dependencies not supplied");
     const QString perl = qEnvironmentVariable ("TEST_PERL");
-    if (format == "7z" && perl.isEmpty ()) QSKIP ("7z integration requires Perl with Compress::Raw::Lzma");
+    if (!bundled && format == "7z" && perl.isEmpty ()) QSKIP ("7z integration requires Perl with Compress::Raw::Lzma");
     QTemporaryDir workspace; Window window (workspace.path ()); window.show ();
     window.findChild<QLineEdit *> ("binary")->setText (binary);
     auto *kind = window.findChild<QComboBox *> ("extractKind");
     kind->setCurrentIndex (kind->findData (format == "docx" ? "office" : format));
-    window.findChild<QLineEdit *> ("johnDirectory")->setText (john);
-    window.findChild<QLineEdit *> ("extractTool")->setText (QDir (john).filePath (format == "pdf" ? "pdf2john.py" : format == "7z" ? "7z2john.pl" : "office2john.py"));
-    window.findChild<QLineEdit *> ("extractInterpreter")->setText (format == "7z" ? perl : python);
+    if (!bundled)
+    {
+      window.findChild<QLineEdit *> ("johnDirectory")->setText (john);
+      window.findChild<QLineEdit *> ("extractTool")->setText (QDir (john).filePath (format == "pdf" ? "pdf2john.py" : format == "7z" ? "7z2john.pl" : "office2john.py"));
+      window.findChild<QLineEdit *> ("extractInterpreter")->setText (format == "7z" ? perl : python);
+    }
+    else
+    {
+      QCOMPARE (window.findChild<QLineEdit *> ("johnDirectory")->text (), bundled_tool ("john/run"));
+      QVERIFY (window.findChild<QLineEdit *> ("extractInterpreter")->text ().isEmpty ());
+      QVERIFY (QFileInfo (window.findChild<QLineEdit *> ("extractTool")->text ()).isFile ());
+    }
     window.findChild<QLineEdit *> ("extractInput")->setText (QDir (fixtures).filePath ("synthetic." + format));
     const QString hashfile = workspace.filePath ("extracted.hashes");
     window.findChild<QLineEdit *> ("extractOutput")->setText (hashfile);

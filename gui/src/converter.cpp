@@ -4,11 +4,12 @@
  */
 #include "converter.h"
 #include "lang.h"
+#include "bundled_tools.h"
 
 #include <QDir>
 #include <QFileInfo>
 #include <QRegularExpression>
-#include <QSaveFile>
+#include <QTemporaryFile>
 #include <QStandardPaths>
 
 Converter::Converter (QObject *parent) : QObject (parent)
@@ -89,6 +90,7 @@ bool Converter::start (const Conversion &request)
   active = true;
   path_step = config.wsl ? 1 : 0;
   path_buffer.clear ();
+  process.setProcessEnvironment (QProcessEnvironment::systemEnvironment ());
   if (config.wsl)
   {
     process.start ("wsl.exe", {"--exec", "wslpath", "-u", QDir::toNativeSeparators (source_path)});
@@ -127,7 +129,11 @@ void Converter::next ()
   }
   emit log (t ("Running ", "Выполняется ") + step.first);
   if (config.wsl) process.start ("wsl.exe", QStringList {"--exec", binary} + step.second);
-  else process.start (binary, step.second);
+  else
+  {
+    process.setProcessEnvironment (tool_environment (binary));
+    process.start (binary, step.second);
+  }
   // An empty output must finish this pipeline, rather than start it again.
   if (steps.isEmpty ()) steps.append ({QString (), {}});
 }
@@ -146,9 +152,9 @@ void Converter::complete (bool success)
   if (success)
   {
     QFile input (temporary->filePath ("output.hashes"));
-    QSaveFile output (config.output);
+    QTemporaryFile output (config.output + ".XXXXXX");
     if (QFileInfo::exists (config.output) || (input.open (QIODevice::ReadOnly) == false) || (input.size () == 0)) success = false;
-    if (success && (output.open (QIODevice::WriteOnly) == false)) success = false;
+    if (success && (output.open () == false)) success = false;
     if (success)
     {
       output.setPermissions (QFileDevice::ReadOwner | QFileDevice::WriteOwner);
@@ -159,7 +165,8 @@ void Converter::complete (bool success)
         count += chunk.count ('\n');
         if (output.write (chunk) != chunk.size ()) { success = false; break; }
       }
-      if (success) success = output.commit ();
+      if (success) success = output.flush () && output.rename (config.output);
+      if (success) output.setAutoRemove (false);
     }
   }
   if (success == false) emit log (t ("No hashes saved. The capture may contain no complete matching exchange, or a dependency failed.", "Хеши не сохранены. В захвате может не быть подходящего полного обмена, либо недоступна зависимость."));

@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QThread>
+#include <QProcess>
 #include <cstdio>
 #ifdef Q_OS_WIN
 #define NOMINMAX
@@ -21,6 +22,24 @@ int main (int argc, char **argv)
 {
   QCoreApplication app (argc, argv);
   const QStringList args = app.arguments ();
+  if (args.contains ("--fixture-child"))
+  {
+    for (int i = 0; i < 100; ++i)
+    {
+      QFile marker (args.last ());
+      if (marker.open (QIODevice::Append)) marker.write ("x");
+      QThread::msleep (50);
+    }
+    return 0;
+  }
+  if (args.contains ("--fixture-parent"))
+  {
+    QProcess child;
+    child.start (app.applicationFilePath (), {"--fixture-child", args.last ()});
+    if (!child.waitForStarted ()) return 1;
+    QThread::sleep (10);
+    return 0;
+  }
   if (args.contains ("--version")) { puts ("v8.0.0-fixture"); return 0; }
   if (args.contains ("--identify"))
   {
@@ -29,6 +48,7 @@ int main (int argc, char **argv)
     return 255;
   }
   if (args.contains ("--fixture-extract")) { puts ("C:/test $price.pdf:$pdf$fixture:::::metadata"); return 0; }
+  if (args.contains ("--fixture-delayed-extract")) { QThread::msleep (250); puts ("$pdf$fixture"); return 0; }
   if (args.contains ("--fixture-incompatible")) { puts ("test:$johnonly$unsupported"); return 0; }
   if (args.contains ("--fixture-empty")) return 0;
   if (args.contains ("-hh")) { puts ("--restore-position\n0 | MD5 | Raw Hash\n22000 | WPA-PBKDF2-PMKID+EAPOL | Network Protocol"); return 0; }

@@ -24,14 +24,7 @@ Runner::Runner (QObject *parent) : QObject (parent)
   connect (&process, &QProcess::readyReadStandardOutput, this, &Runner::drain);
   connect (&process, &QProcess::started, this, [this]
   {
-#ifdef Q_OS_WIN
-    const HANDLE child = OpenProcess (PROCESS_SET_QUOTA | PROCESS_TERMINATE, FALSE, DWORD (process.processId ()));
-    if (child)
-    {
-      if (job_handle) AssignProcessToJobObject (job_handle, child);
-      CloseHandle (child);
-    }
-#else
+#ifndef Q_OS_WIN
     if (slave_fd >= 0) { close (slave_fd); slave_fd = -1; }
 #endif
     emit started ();
@@ -98,13 +91,6 @@ bool Runner::start (const QString &binary, const QStringList &args, const QStrin
     }
     FlushConsoleInputBuffer (input);
   }
-  job_handle = CreateJobObjectW (nullptr, nullptr);
-  if (job_handle)
-  {
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits {};
-    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-    SetInformationJobObject (job_handle, JobObjectExtendedLimitInformation, &limits, sizeof (limits));
-  }
   process.setCreateProcessArgumentsModifier ([this, interactive] (QProcess::CreateProcessArguments *data)
   {
     if (interactive)
@@ -117,7 +103,7 @@ bool Runner::start (const QString &binary, const QStringList &args, const QStrin
     }
   });
 #else
-  process.setChildProcessModifier ({});
+  process.setChildProcessModifier ([] { setsid (); });
   if (interactive)
   {
     master_fd = posix_openpt (O_RDWR | O_NOCTTY | O_CLOEXEC);
@@ -130,7 +116,7 @@ bool Runner::start (const QString &binary, const QStringList &args, const QStrin
     slave_fd = open (ptsname (master_fd), O_RDWR | O_NOCTTY | O_CLOEXEC);
     if (slave_fd < 0) { release_input (); return false; }
     const int slave = slave_fd;
-    process.setChildProcessModifier ([slave] { dup2 (slave, STDIN_FILENO); });
+    process.setChildProcessModifier ([slave] { setsid (); dup2 (slave, STDIN_FILENO); });
   }
 #endif
   process.setWorkingDirectory (cwd);
@@ -143,7 +129,6 @@ void Runner::release_input ()
   accepting_commands = false;
 #ifdef Q_OS_WIN
   if (input) { CloseHandle (input); input = nullptr; }
-  if (job_handle) { CloseHandle (job_handle); job_handle = nullptr; }
 #else
   if (master_fd >= 0) { close (master_fd); master_fd = -1; }
   if (slave_fd >= 0) { close (slave_fd); slave_fd = -1; }

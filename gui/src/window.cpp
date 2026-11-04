@@ -9,6 +9,7 @@
 #include "commandbuilder.h"
 #include "hashcatinfoparser.h"
 #include "telemetry.h"
+#include "bundled_tools.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -587,7 +588,7 @@ QWidget *Window::extractor_page ()
 {
   QVBoxLayout *layout;
   auto *widget = page (&layout, "File to hash", "Из файла в хеш");
-  layout->addWidget (label ("Local extractor catalog from Hashcat-Reactor. Install the appropriate John Jumbo tool and its dependencies. Availability and Hashcat compatibility depend on the exact format/version; a catalog entry is not a guarantee of support.", "Каталог локальных конвертеров из Hashcat-Reactor. Установите нужную утилиту John Jumbo и её зависимости. Поддержка зависит от формата и версии; наличие в каталоге не гарантирует совместимость с Hashcat."));
+  layout->addWidget (label ("The Windows package includes John Jumbo, Python and Perl. Tools are selected automatically. On Linux, select your installed John directory. Hashcat compatibility depends on the exact format/version.", "В Windows-комплект включены John Jumbo, Python и Perl. Инструменты выбираются автоматически. В Linux укажите каталог установленного John. Совместимость с Hashcat зависит от формата и версии."));
   auto *form = new QFormLayout; layout->addLayout (form);
   auto *kind = new QComboBox; kind->setObjectName ("extractKind"); kind->setEditable (false);
   const auto catalog = Extractor::catalog ();
@@ -595,7 +596,7 @@ QWidget *Window::extractor_page ()
   row (form, "Format / extractor", "Формат / конвертер", kind);
   row (form, "John Jumbo run directory", "Каталог run John Jumbo", path_field ("johnDirectory", true));
   row (form, "Extractor executable or script", "Исполняемый файл или скрипт", path_field ("extractTool"));
-  row (form, "Python/Perl (empty = PATH)", "Python/Perl (пусто = PATH)", path_field ("extractInterpreter"));
+  row (form, "Python/Perl (empty = automatic)", "Python/Perl (пусто = автоматически)", path_field ("extractInterpreter"));
   auto resolve = [this, kind, catalog]
   {
     const auto item = catalog[kind->currentData ().toString ()].toObject ();
@@ -678,7 +679,7 @@ QWidget *Window::capture_page ()
   wsl->setEnabled (false);
 #endif
   form->addRow (wsl); layout->addLayout (form);
-  layout->addWidget (label ("Linux: install hcxtools. Windows: install WSL with a Linux distribution, then install hcxtools there. Legacy formats additionally need hcxhash2cap. The converter keeps default extraction settings, matching the website.", "Linux: установите hcxtools. Windows: установите WSL с Linux, затем hcxtools внутри неё. Для старых форматов нужен также hcxhash2cap. Используются стандартные настройки извлечения, как на сайте."));
+  layout->addWidget (label ("The Windows package includes both converters and selects them automatically. Linux: install hcxtools. WSL remains an optional alternative on Windows. The converter keeps default extraction settings, matching the website.", "В Windows-комплект включены оба конвертера, они выбираются автоматически. Linux: установите hcxtools. В Windows также можно выбрать WSL. Используются стандартные настройки извлечения, как на сайте."));
   auto *actions = new QHBoxLayout;
   auto *convert = button ("convert", "Convert locally", "Конвертировать локально"); convert->setProperty ("primary", true);
   auto *cancel = button ("cancelConversion", "Cancel", "Отмена"); cancel->setEnabled (false);
@@ -773,12 +774,12 @@ void Window::retranslate ()
     "<h2>From a file to a repeatable task</h2><ol><li>Select hashcat.exe (Windows) or hashcat (Linux) at the top. Keep its complete distribution, including modules and OpenCL files. Install the GPU vendor's compute driver; CPU testing can use PoCL on Linux.</li><li>Click <b>Load modes</b> to read the installed engine's complete help and supported hash types. The number field also accepts any mode directly.</li><li>Open <b>New task</b>, choose the input hashes and the correct mode. The forms support all ten Hashcat 8 modes. Select and reorder checked dictionaries/rules. Profiles keep unchecked rows. Modes 4/5/8/12 require Hashcat 8; their settings are in the extended tabs. Mode 12 needs one ?w and optionally one ?q after it, with two dictionaries; increment is not supported. Association mode requires a matching dictionary line for each hash.</li><li>Add the task to the queue or start it immediately. Only one task runs at a time. Queue processing continues after success or exhaustion, but stops on errors and manual interruptions.</li><li>Watch speed, recovered count, device telemetry and estimated finish. Pause/resume waits for real engine status. A checkpoint stop waits until Hashcat can save its state. Stop allows eight seconds for a graceful exit before killing an unresponsive process.</li></ol>"
     "<h3>Sessions and results</h3><p>Each task has its own restore file, potfile and results under the application data directory. Restore uses the same task settings and files. Hashcat 8 uses --restore-position; earlier versions use --restore. Load the engine help before restoring. Interrupted tasks never restart automatically on app launch. Copy a task to the form to change its settings and create a new task. Removing a queue entry preserves its files.</p><p>The results table displays at most 2,000 entries. Export copies the complete hash:hex file. Hex preserves arbitrary bytes and delimiters; UTF-8 display may show replacement characters for non-text passwords. Profiles and queue metadata contain paths and settings. Logs stay in memory and are bounded. Files are stored on your computer.</p>"
     "<h3>Every CLI command</h3><p>The <b>Commands</b> page accepts every argument supported by your engine, including modes 4/5/8/12, rules, devices, benchmarks, --identify, --show, --left, --keyspace, --stdout, brain and new options. Enter one argument per line, with no surrounding shell quotes, or a JSON string array. Paths with spaces are a single argument. Shell pipes and redirection are not interpreted. Use Hashcat's file options. Interactive prompts accept text and Enter. Read the actual installed help in the second tab and search for option names.</p><p>CLI mode runs exactly your arguments: session files, output files and destructive flags such as --remove remain under your control. It does not add the managed queue's status/output options. Use <b>From task form</b> for an editable starting point.</p>"
-    "<h3>Preparing hashes</h3><p>The official online converter accepts PCAPNG, PCAP and CAP for WPA/WPA2 mode 22000. This app uses the same hcxpcapngtool locally, adds gzip and legacy HCCAP/HCCAPX/16800 conversion, and can extract EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) and TACACS+ (16100). A capture without the required exchange produces no hashes. Windows uses hcxtools inside WSL; Linux runs it directly.</p><p>Encrypted ZIP/7z/RAR archives, PDF/Office documents, KeePass databases and disk containers also require format-specific extraction. They are NOT accepted by the website's Wi-Fi converter. Open the second converter tab and select an installed John Jumbo extractor, its input file, a new output path and, for scripts, Python or Perl. Install the tool dependencies. The app removes filename metadata from $...$ records, then asks Hashcat to identify compatible modes. Only recognized output is saved. If several modes match, select the correct one before importing. The catalog has 78 entries; support depends on the exact format and tool versions. Binary outputs and formats without $...$ records need external preparation. A file's extension alone cannot determine its hash mode. Raw MD5/SHA/NTLM text needs no packet conversion.</p>"
+    "<h3>Preparing hashes</h3><p>The official online converter accepts PCAPNG, PCAP and CAP for WPA/WPA2 mode 22000. This app uses the same hcxpcapngtool locally, adds gzip and legacy HCCAP/HCCAPX/16800 conversion, and can extract EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) and TACACS+ (16100). A capture without the required exchange produces no hashes. Windows includes portable hcxtools. WSL remains optional. Linux uses installed hcxtools.</p><p>Encrypted ZIP/7z/RAR archives, PDF/Office documents, KeePass databases and disk containers also require format-specific extraction. They are NOT accepted by the website's Wi-Fi converter. Open the second converter tab and select an installed John Jumbo extractor, its input file, a new output path and, for scripts, Python or Perl. Windows includes John Jumbo, Python, Perl and converter dependencies. Leave the interpreter blank for automatic selection. On Linux install the tool dependencies. The app removes filename metadata from $...$ records, then asks Hashcat to identify compatible modes. Only recognized output is saved. If several modes match, select the correct one before importing. The catalog has 78 entries; support depends on the exact format and tool versions. Binary outputs and formats without $...$ records need external preparation. A file's extension alone cannot determine its hash mode. Raw MD5/SHA/NTLM text needs no packet conversion.</p>"
     "<h3>Troubleshooting</h3><p>No devices: inspect devices and install the compute runtime. Token/line-length error: check hash type and whether extraction is needed. Out of memory: reduce workload or select a different device. Unsupported option: read the installed engine's help. GPU temperature depends on the driver exposing telemetry.</p><p><a href='https://hashcat.net/wiki/'>Hashcat wiki</a> · <a href='https://hashcat.net/cap2hashcat/'>Official converter</a> · <a href='https://github.com/ZerBea/hcxtools'>hcxtools</a></p>",
     "<h2>От файла к повторяемой задаче</h2><ol><li>Вверху выберите hashcat.exe (Windows) или hashcat (Linux). Сохраните весь комплект движка, включая modules и OpenCL. Установите вычислительный драйвер производителя GPU; для тестов CPU в Linux подходит PoCL.</li><li>Нажмите <b>Загрузить типы</b>: приложение прочитает справку и типы хешей установленного движка. Номер типа можно ввести вручную.</li><li>Откройте <b>Новую задачу</b>, выберите файл хешей и правильный тип. Формы поддерживают десять режимов Hashcat 8. Отметьте словари и правила, задайте порядок. Профили сохраняют и неотмеченные строки. Режимы 4/5/8/12 требуют Hashcat 8; параметры находятся на расширенных вкладках. В режиме 12 нужен один ?w и, для второго словаря, один ?q после него; наращивание длины недоступно. В режиме ассоциации каждой строке хешей нужна соответствующая строка словаря.</li><li>Добавьте задачу в очередь или запустите сразу. Одновременно выполняется одна задача. Очередь продолжается после успеха или исчерпания кандидатов, но останавливается при ошибке и ручном прерывании.</li><li>Следите за скоростью, числом результатов, устройствами и ожидаемым завершением. Пауза и продолжение подтверждаются статусом движка. Остановка на контрольной точке ждёт сохранения состояния. Обычная остановка даёт процессу восемь секунд, затем завершает зависший процесс принудительно.</li></ol>"
     "<h3>Сессии и результаты</h3><p>У каждой задачи свои restore, potfile и результаты в каталоге данных приложения. Восстановление использует прежние настройки и входные файлы. В Hashcat 8 применяется --restore-position, в старых версиях --restore. Перед восстановлением загрузите справку движка. После запуска приложения прерванные задачи сами не возобновляются. Для изменения задачи скопируйте её в форму и создайте новую. Удаление строки очереди сохраняет её файлы.</p><p>Таблица показывает до 2000 результатов, экспорт сохраняет полный файл хеш:hex. Hex сохраняет любые байты и разделители; отображение UTF-8 может заменять нетекстовые байты. Профили и очередь содержат пути и настройки. Журналы ограничены по объёму и остаются в памяти. Файлы хранятся на вашем компьютере.</p>"
     "<h3>Все команды CLI</h3><p>Вкладка <b>Команды</b> принимает любые аргументы вашей версии: режимы 4/5/8/12, правила, устройства, benchmark, --identify, --show, --left, --keyspace, --stdout, brain и новые опции. Один аргумент на строку, без кавычек оболочки, либо JSON-массив строк. Путь с пробелами — один аргумент. Конвейеры и перенаправления оболочки не выполняются; используйте файловые параметры Hashcat. На интерактивные запросы можно отвечать текстом и Enter. На второй вкладке справки доступен поиск по выводу установленного движка.</p><p>Этот режим запускает ровно заданные аргументы: сессии, файлы результатов и изменяющие входные данные флаги вроде --remove задаёте вы. Параметры управляемой очереди автоматически не добавляются. Кнопка <b>Из формы задачи</b> даёт готовую основу для редактирования.</p>"
-    "<h3>Подготовка хешей</h3><p>Онлайн-конвертер Hashcat принимает PCAPNG, PCAP и CAP для WPA/WPA2, режим 22000. Приложение использует тот же hcxpcapngtool локально, добавляет gzip и старые HCCAP/HCCAPX/16800, а также извлечение EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) и TACACS+ (16100). Захват без нужного обмена не даст хешей. В Windows hcxtools запускается внутри WSL, в Linux — напрямую.</p><p>Зашифрованным архивам ZIP/7z/RAR, документам PDF/Office, базам KeePass и дисковым контейнерам тоже нужно извлечение данных. Wi-Fi-конвертер сайта эти форматы НЕ принимает. Откройте вторую вкладку конвертера, выберите установленную утилиту John Jumbo, исходный файл, новый путь результата и, для скрипта, Python или Perl. Установите зависимости утилиты. Приложение удаляет метаданные имени из записей $...$ и проверяет их через Hashcat --identify. Сохраняется только распознанный результат. Если типов несколько, выберите нужный перед импортом. В каталоге 78 записей; поддержка зависит от точного формата и версий. Бинарный вывод и форматы без $...$ требуют отдельной подготовки. Расширение файла само по себе не определяет тип хеша. Текстовые MD5/SHA/NTLM преобразования захватов не требуют.</p>"
+    "<h3>Подготовка хешей</h3><p>Онлайн-конвертер Hashcat принимает PCAPNG, PCAP и CAP для WPA/WPA2, режим 22000. Приложение использует тот же hcxpcapngtool локально, добавляет gzip и старые HCCAP/HCCAPX/16800, а также извлечение EAP-MD5 (4800), LEAP/MSCHAPv2 (5500) и TACACS+ (16100). Захват без нужного обмена не даст хешей. Архив Windows включает переносимый hcxtools. WSL доступен как дополнительный вариант. В Linux используется установленный hcxtools.</p><p>Зашифрованным архивам ZIP/7z/RAR, документам PDF/Office, базам KeePass и дисковым контейнерам тоже нужно извлечение данных. Wi-Fi-конвертер сайта эти форматы НЕ принимает. Откройте вторую вкладку конвертера, выберите установленную утилиту John Jumbo, исходный файл, новый путь результата и, для скрипта, Python или Perl. Архив Windows включает John Jumbo, Python, Perl и зависимости конвертеров. Пустое поле интерпретатора включает автоматический выбор. В Linux установите зависимости утилиты. Приложение удаляет метаданные имени из записей $...$ и проверяет их через Hashcat --identify. Сохраняется только распознанный результат. Если типов несколько, выберите нужный перед импортом. В каталоге 78 записей; поддержка зависит от точного формата и версий. Бинарный вывод и форматы без $...$ требуют отдельной подготовки. Расширение файла само по себе не определяет тип хеша. Текстовые MD5/SHA/NTLM преобразования захватов не требуют.</p>"
     "<h3>Если возникла проблема</h3><p>Нет устройств: проверьте их список и вычислительный драйвер. Ошибка длины строки: проверьте тип хеша и необходимость извлечения. Не хватает памяти: уменьшите нагрузку или смените устройство. Неизвестная опция: откройте справку установленной версии. Температура GPU доступна, только если её предоставляет драйвер.</p><p><a href='https://hashcat.net/wiki/'>Wiki Hashcat</a> · <a href='https://hashcat.net/cap2hashcat/'>Официальный конвертер</a> · <a href='https://github.com/ZerBea/hcxtools'>hcxtools</a></p>"));
   get<QTextBrowser> ("guide")->append (t (
     "<h3>Authors and licenses</h3><p>Combined GUI: GPL-3.0-or-later. Command builder, validators and parser: <a href='https://github.com/rgroesslinger/hashcat-gui'>hashcat-gui, Rainer Groesslinger</a>. Dashboard and extractor catalog: <a href='https://github.com/jjsvs/Hashcat-Reactor'>Hashcat-Reactor, copyright 2025 rabbit, MIT</a>. See THIRD_PARTY.md and the included corresponding source archive. Hashcat remains a separate MIT program.</p>",
@@ -1103,6 +1104,11 @@ void Window::fail (const QString &text)
 void Window::save ()
 {
   if (loading) return;
+  if (!workspace_writable)
+  {
+    statusBar ()->showMessage (t ("Workspace file is unreadable, damaged or from a newer version. Changes are not saved. Choose another data directory or repair the file.", "Файл рабочей области недоступен, повреждён или создан новой версией. Изменения не сохраняются. Выберите другой каталог данных или восстановите файл."));
+    return;
+  }
   QJsonArray list;
   for (const Job &job : jobs) list.append (job.json ());
   const QJsonObject document {{"version", 1}, {"jobs", list}, {"language", qApp->property ("language").toString ()},
@@ -1117,12 +1123,29 @@ void Window::load ()
   loading = true;
   QFile file (QDir (root).filePath ("workspace.json"));
   QJsonObject obj;
-  if (file.open (QIODevice::ReadOnly) && (file.size () <= 16 * 1024 * 1024)) obj = QJsonDocument::fromJson (file.readAll ()).object ();
+  if (file.exists ())
+  {
+    workspace_writable = file.open (QIODevice::ReadOnly) && file.size () <= 16 * 1024 * 1024;
+    if (workspace_writable)
+    {
+      const auto document = QJsonDocument::fromJson (file.readAll ());
+      obj = document.object ();
+      workspace_writable = document.isObject () && obj["version"].toInt (-1) == 1 && obj["jobs"].isArray ();
+      QSet<QString> seen;
+      for (const auto &value : obj["jobs"].toArray ())
+      {
+        const QString id = value.toObject ()["id"].toString ();
+        if (!value.isObject () || !QRegularExpression ("^[a-zA-Z0-9_-]{1,64}$").match (id).hasMatch () || seen.contains (id)) workspace_writable = false;
+        seen.insert (id);
+      }
+    }
+    if (!workspace_writable) obj = {};
+  }
   qApp->setProperty ("language", obj["language"].toString ("ru"));
   const QSignalBlocker blocker (get<QComboBox> ("language"));
   get<QComboBox> ("language")->setCurrentIndex (russian () ? 0 : 1);
   QString binary = obj["binary"].toString ();
-  if (binary.isEmpty ())
+  if (binary.isEmpty () || !QFileInfo (binary).isExecutable ())
   {
     binary = QStandardPaths::findExecutable ("hashcat");
     for (const QString &relative : {QString ("hashcat.exe"), QString ("hashcat/hashcat.exe"), QString ("../hashcat"), QString ("hashcat")})
@@ -1133,11 +1156,15 @@ void Window::load ()
   }
   get<QLineEdit> ("binary")->setText (binary);
   get<QLineEdit> ("jobName")->setText (t ("My task", "Моя задача"));
-  get<QLineEdit> ("hcxDirectory")->setText (obj["hcx"].toString ());
-  get<QLineEdit> ("johnDirectory")->setText (obj["john"].toString ());
+  QString hcx = obj["hcx"].toString (), john = obj["john"].toString ();
+  const bool bundled_hcx = (hcx.isEmpty () || !QFileInfo (hcx).isDir ()) && !bundled_tool ("hcxtools/hcxpcapngtool.exe").isEmpty ();
+  if (bundled_hcx) hcx = bundled_tool ("hcxtools");
+  if (john.isEmpty () || !QFileInfo (john).isDir ()) john = bundled_tool ("john/run");
+  get<QLineEdit> ("hcxDirectory")->setText (hcx);
+  get<QLineEdit> ("johnDirectory")->setText (john);
   get<QLineEdit> ("extractInterpreter")->setText (obj["interpreter"].toString ());
 #ifdef Q_OS_WIN
-  get<QCheckBox> ("useWsl")->setChecked (obj["wsl"].toBool (true));
+  get<QCheckBox> ("useWsl")->setChecked (bundled_hcx ? false : obj["wsl"].toBool (true));
 #endif
   QSet<QString> ids;
   for (const auto &value : obj["jobs"].toArray ())
@@ -1149,6 +1176,7 @@ void Window::load ()
     jobs.append (job);
   }
   loading = false;
+  if (!workspace_writable) save ();
 }
 
 void Window::closeEvent (QCloseEvent *event)

@@ -2,6 +2,7 @@
 #pragma once
 #include <QObject>
 #include <QProcess>
+#include "managed_process.h"
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QJsonObject>
@@ -31,7 +32,7 @@ private:
   void drain ();
   void complete (bool success, const QList<int> &modes = {});
   Extraction config;
-  QProcess process;
+  ManagedProcess process;
   QTimer timeout;
   std::unique_ptr<QTemporaryDir> temporary;
   QByteArray buffer, hashes;

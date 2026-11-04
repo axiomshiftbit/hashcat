@@ -21,9 +21,10 @@ after it for a second wordlist; it does not accept incrementing.
 ## Run
 
 Windows: unpack the complete portable package and run `hashcat-desktop.exe`.
-The packaged `hashcat/` directory must stay intact. Install the GPU manufacturer's
-compute driver. If Windows reports a missing MSVC runtime, install Microsoft's
-[Visual C++ x64 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+Keep the `hashcat/` and `tools/` directories intact. Hashcat, Qt, the MSVC runtime,
+hcxtools, John Jumbo, Python, Perl and converter dependencies are included.
+No WSL or system Python/Perl installation is required. Install the GPU manufacturer's
+compute driver for GPU work.
 
 Linux (Debian 13 / Ubuntu 24.04 or newer): install `qt6-base-dev`, `hashcat` and your
 compute runtime, then run `./hashcat-desktop`. CPU testing can use `pocl-opencl-icd`.
@@ -41,7 +42,9 @@ the application's local data directory (`HashcatDesktop/Hashcat Desktop` under
 LocalAppData on Windows or the platform Qt application data directory on Linux).
 `--data-dir PATH` selects another workspace. Only one application instance can use
 a workspace. Removing a queue entry preserves its files. Profiles and workspace
-metadata contain file paths and settings. Results stay local. The table shows the
+metadata contain file paths and settings. An unreadable, malformed or unsupported
+workspace file is preserved and saving is disabled until another data directory
+is selected or the file is repaired. Results stay local. The table shows the
 first 2,000 records and at most 8 MiB; export copies the entire `hash:hex` file.
 
 ## Capture conversion
@@ -52,17 +55,19 @@ including gzip input. `hcxhash2cap` additionally converts HCCAPX, HCCAP and lega
 PMKID/16800 input before extraction. Outputs: WPA/WPA2 mode 22000, EAP-MD5 mode 4800,
 LEAP/MSCHAPv2 mode 5500 and TACACS+ mode 16100.
 
-Install `hcxtools` on Linux. On Windows, install a WSL Linux distribution and install
-`hcxtools` there; select the WSL option. The default WSL distribution is used and
-paths are translated by `wslpath`. The upstream hcxtools project does not support
-native Windows. No capture is sent to an online service. An empty or incomplete
+Install `hcxtools` on Linux. Windows uses the included hcxtools build through a
+portable Cygwin runtime, selected automatically. This project builds and tests that
+Windows port; upstream hcxtools does not support Windows. WSL is an optional
+alternative using its default distribution and `wslpath`.
+No capture is sent to an online service. An empty or incomplete
 capture is reported as an unsuccessful extraction. Existing output files are not
 overwritten.
 
 The second converter tab integrates the 78-entry Reactor catalog, including ZIP,
-RAR, 7z, PDF, Office, KeePass and other formats. Install the appropriate
-[John Jumbo](https://github.com/openwall/john) extractor and its dependencies,
-choose its executable/script and, if needed, a Python/Perl interpreter. Additional
+RAR, 7z, PDF, Office, KeePass and other formats. Windows includes the appropriate
+[John Jumbo](https://github.com/openwall/john) tools and dependencies. Leave the
+interpreter field empty for automatic selection. On Linux install John Jumbo and
+the dependencies for the formats you use, then select its run directory. Additional
 arguments are passed literally, one per line; the input path is appended last.
 The application removes John filename metadata from `$...$` records and asks the
 selected Hashcat to identify compatible modes before saving. Unsupported output,
@@ -102,7 +107,10 @@ separate engine remains MIT licensed. Both packages include corresponding GUI
 source and build scripts in `HashcatDesktop-source.tar.gz`. Qt is dynamically linked and retains
 its own LGPL/GPL/commercial licensing options. Distribution must preserve Qt license
 notices and the user's ability to replace its shared libraries. hcxtools is a
-separate external dependency and retains its upstream license.
-The Windows archive includes the unmodified Qt Base 6.10.2 sources, licenses,
+separate program and retains its upstream license. Windows converter runtime
+versions, checksums and corresponding sources are included under `licenses/`.
+Build scripts and dependency locks are in `gui/packaging/`. The bundle includes
+source archives for redistributed Cygwin and Python packages, John and hcxtools.
+The Windows archive includes the unmodified Qt Base 6.12.0 sources, licenses,
 third-party notices in those sources, build configuration and SBOM in `licenses/`.
 You may rebuild and replace its Qt shared libraries, including for debugging changes.
