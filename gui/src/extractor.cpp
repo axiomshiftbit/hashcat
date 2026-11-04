@@ -36,6 +36,21 @@ QByteArray Extractor::normalize (const QByteArray &output)
     line = line.mid (marker);
     const int trailer = line.indexOf (':');
     if (trailer >= 0) line.truncate (trailer);
+    if (line.startsWith ("$pdf$"))
+    {
+      auto fields = line.split ('*');
+      if (fields.size () > 3)
+      {
+        bool ok = false;
+        const quint64 permissions = fields[3].toULongLong (&ok);
+        // Preserve PDF's 32 permission bits without overflowing Windows strtol.
+        if (ok && permissions >= 0x80000000ULL && permissions <= 0xffffffffULL)
+        {
+          fields[3] = QByteArray::number (qint64 (permissions) - 0x100000000LL);
+          line = fields.join ('*');
+        }
+      }
+    }
     if (!line.contains (QChar (0).toLatin1 ()) && !seen.contains (line)) { seen.insert (line); result += line + '\n'; }
   }
   return result;

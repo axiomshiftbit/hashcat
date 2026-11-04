@@ -312,6 +312,11 @@ private slots:
     request.arguments = {"--fixture-wait"}; done.clear ();
     QVERIFY (extractor.start (request)); extractor.cancel (); QTRY_COMPARE (done.size (), 1); QVERIFY (!done[0][0].toBool ());
     QCOMPARE (Extractor::normalize ("C:/price $5.rar:$RAR3$*0*abc::::metadata\nC:/price $5.rar:$RAR3$*0*abc::::metadata\n"), QByteArray ("$RAR3$*0*abc\n"));
+    QCOMPARE (Extractor::normalize ("$pdf$2*3*128*4294967292*1*32*abc\n"), QByteArray ("$pdf$2*3*128*-4*1*32*abc\n"));
+    QCOMPARE (Extractor::normalize ("$pdf$2*3*128*-4*1*32*abc\n"), QByteArray ("$pdf$2*3*128*-4*1*32*abc\n"));
+    QCOMPARE (Extractor::normalize ("$pdf$2*3*128*2147483648*1*32*abc\n"), QByteArray ("$pdf$2*3*128*-2147483648*1*32*abc\n"));
+    QCOMPARE (Extractor::normalize ("$pdf$2*3*128*2147483647*1*32*abc\n"), QByteArray ("$pdf$2*3*128*2147483647*1*32*abc\n"));
+    QCOMPARE (Extractor::normalize ("$pdf$2*3*128*4294967296*1*32*abc\n"), QByteArray ("$pdf$2*3*128*4294967296*1*32*abc\n"));
   }
 
   void real_document_extraction_data ()
