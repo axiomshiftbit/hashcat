@@ -22,18 +22,20 @@ def fetch(item, cache, base="", algorithm="sha256"):
             if hashlib.file_digest(stream, algorithm).hexdigest() == expected:
                 return target
     url = item.get("url", base + "/" + item.get("path", ""))
-    for attempt in range(3):
+    for attempt in range(5):
         try:
-            urllib.request.urlretrieve(url, target.with_suffix(target.suffix + ".part"))
             partial = target.with_suffix(target.suffix + ".part")
+            with urllib.request.urlopen(url, timeout=90) as response, partial.open("wb") as stream:
+                shutil.copyfileobj(response, stream)
             with partial.open("rb") as stream:
                 if hashlib.file_digest(stream, algorithm).hexdigest() != expected:
                     raise ValueError("Checksum mismatch: " + name)
             partial.replace(target)
             return target
-        except Exception:
-            if attempt == 2:
-                raise
+        except Exception as error:
+            print("Download retry:", name, type(error).__name__, flush=True)
+            if attempt == 4:
+                raise RuntimeError("Download failed: " + name) from error
             time.sleep(1)
 
 

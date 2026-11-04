@@ -20,12 +20,22 @@ jobs:
         with:
           path: gui/bundle
           key: converters-windows-${{ hashFiles('gui/packaging/**', 'gui/third_party/hashcat_reactor/tool_registry.json') }}
+      - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+        id: source-cache
+        with:
+          path: ${{ runner.temp }}/converters/downloads
+          key: converter-sources-${{ hashFiles('gui/packaging/*.lock.json') }}
       - name: Prepare locked converter sources and runtimes
         if: steps.converter-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           python gui/packaging/cygwin_bundle.py "$env:RUNNER_TEMP\converters" gui/bundle
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+        if: always() && steps.source-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ runner.temp }}/converters/downloads
+          key: converter-sources-${{ hashFiles('gui/packaging/*.lock.json') }}
       - name: Build portable converters
         if: steps.converter-cache.outputs.cache-hit != 'true'
         shell: pwsh
