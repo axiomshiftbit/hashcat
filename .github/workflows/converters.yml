@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.14'
-      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+      - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
         id: converter-cache
         with:
           path: gui/bundle
@@ -47,6 +47,11 @@ jobs:
           & "$work\cygwin\bin\bash.exe" --noprofile --norc "$($packaging.Replace('\','/'))/build_converters.sh" $work $output $packaging
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Rename-Item "$work\cygwin" cygwin-build-hidden
+      - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+        if: steps.converter-cache.outputs.cache-hit != 'true'
+        with:
+          path: gui/bundle
+          key: converters-windows-${{ hashFiles('gui/packaging/*.lock.json', 'gui/packaging/*requirements.txt', 'gui/packaging/cygwin_bundle.py', 'gui/packaging/build_converters.sh') }}
       - name: Verify isolated portable runtimes
         shell: pwsh
         run: |

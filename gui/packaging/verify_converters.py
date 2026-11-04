@@ -16,21 +16,27 @@ def main():
     env = os.environ.copy()
     for name in ("PYTHONHOME", "PYTHONPATH", "PERL5LIB", "OPENSSL_CONF", "OPENSSL_MODULES"):
         env.pop(name, None)
-    env.update(PATH=os.pathsep.join([str(runtime), str(john), env["SystemRoot"] + "\\System32"]),
+    env.update(PATH=os.pathsep.join([str(runtime), str(john), env["SYSTEMROOT"] + "\\System32"]),
                LC_ALL="C.UTF-8", PYTHONUTF8="1", PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1",
                PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="python")
 
+    failures = []
+
     def run(command, success=True):
-        result = subprocess.run([str(arg) for arg in command], env=env, cwd=john,
-                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=40)
+        try:
+            result = subprocess.run([str(arg) for arg in command], env=env, cwd=john,
+                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=40)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            failures.append(str(command[0]) + ": " + str(error))
+            return ""
         output = result.stdout.decode("utf-8", errors="replace")
         if 0xC0000000 <= result.returncode & 0xFFFFFFFF < 0xD0000000:
-            raise RuntimeError(str(command[0]) + " crashed: " + hex(result.returncode & 0xFFFFFFFF))
+            failures.append(str(command[0]) + " crashed: " + hex(result.returncode & 0xFFFFFFFF))
         if success and result.returncode:
-            raise RuntimeError(str(command[0]) + "\n" + output)
+            failures.append(str(command[0]) + "\n" + output)
         for error in ("ModuleNotFoundError", "ImportError:", "Can't locate ", "error while loading shared libraries"):
             if error in output:
-                raise RuntimeError(str(command[0]) + "\n" + output)
+                failures.append(str(command[0]) + "\n" + output)
         return output
 
     python, perl = runtime / "python3.12.exe", runtime / "perl.exe"
@@ -46,17 +52,21 @@ def main():
     catalog = json.loads((Path(__file__).parents[1] / "third_party/hashcat_reactor/tool_registry.json").read_text())
     resolved = {}
     for key, item in catalog.items():
+        print("Checking extractor:", key, flush=True)
         name = item["name"]
         preferred = {"python": ".py", "perl": ".pl", "native": ".exe"}[item["kind"]]
         candidates = [john / (name + extension) for extension in (preferred, ".exe", ".py", ".pl", "")]
         tool = next((path for path in candidates if path.is_file()), None)
         if tool is None:
-            raise RuntimeError("Missing extractor: " + key)
+            failures.append("Missing extractor: " + key)
+            continue
         command = [tool]
         if tool.suffix in (".py", ".pl"):
             command = ([pdf_python, "-X", "utf8"] if key == "pdf" else [python if tool.suffix == ".py" else perl]) + command
         run(command, success=False)
         resolved[key] = tool.name
+    if failures:
+        raise RuntimeError("\n".join(dict.fromkeys(failures)))
     (root / "tools/manifest.json").write_text(json.dumps({"catalog": resolved, "runtime": "Cygwin"}, indent=2) + "\n")
     print("All", len(resolved), "catalog tools found and launched with isolated PATH.")
 
