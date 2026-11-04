@@ -92,8 +92,10 @@
     "desktop-file-utils",
     "diffutils",
     "findutils",
+    "gawk",
     "gcc-core",
     "gcc-g++",
+    "grep",
     "gsettings-desktop-schemas",
     "gzip",
     "libXau6",
@@ -238,6 +240,7 @@
     "python312-webencodings",
     "python312-wheel",
     "python312-zipp",
+    "sed",
     "shared-mime-info",
     "tar",
     "terminfo",
@@ -2486,6 +2489,45 @@
         "path": "x86_64/release/zstd/zstd-1.5.7-1-src.tar.zst",
         "size": 1868357,
         "sha512": "70e7e40283b8f7783b5545b249e4afc815fe1ac625786ad9e6e6ef50a733d0cf8b810ccea280786dd30f7b82af837f7fc09efe0f3cd0ca146d9c231648f3cc64"
+      }
+    },
+    "sed": {
+      "version": "4.10-1",
+      "install": {
+        "path": "x86_64/release/sed/sed-4.10-1-x86_64.tar.xz",
+        "size": 359252,
+        "sha512": "da5475344a1693f90fb560773ccca48eaf13af0e6bbcada9dcea658862bf7f46043b2d7365de0e2e235fb9a874fe784ad83bc29eb2fdbf3207cd8ad5e127b8b9"
+      },
+      "source": {
+        "path": "x86_64/release/sed/sed-4.10-1-src.tar.xz",
+        "size": 1737036,
+        "sha512": "0b327f8771e53f940b082c93667e480217264f9fa84cf7965e589b1b2dc531b279ee385f57377ec48481169e7f10bcd5ecae9fa44d5ea3c085014fd1d90a5dbd"
+      }
+    },
+    "gawk": {
+      "version": "5.4.0-1",
+      "install": {
+        "path": "x86_64/release/gawk/gawk-5.4.0-1-x86_64.tar.xz",
+        "size": 1496256,
+        "sha512": "3604c99921d0cff387279aec1d3b332e8afcd2746b052304c0511221efdb6ae6d4a3117b36593e44adc43c67b6f6c4c48bccf6b686e2e1a5cac644c89613d829"
+      },
+      "source": {
+        "path": "src/release/gawk/gawk-5.4.0-1-src.tar.xz",
+        "size": 4661040,
+        "sha512": "5c23e610288d88531bb906bc6cd16db784d404778bc7ca10a1575f80f346593fd5091cf6f2c5220fe98ba952a11325bd53fa548eef26bb6637f5ac99f99dde4b"
+      }
+    },
+    "grep": {
+      "version": "3.12-1",
+      "install": {
+        "path": "x86_64/release/grep/grep-3.12-1-x86_64.tar.xz",
+        "size": 418788,
+        "sha512": "2ba28b5d93c352bc3f3f0f232e2052e6651b71cc535841f4ff8cedb23e61e9e4c030d7d5516ed9c797074e1a59cbf3a56732ca678cb0e986e86dcbbf25955976"
+      },
+      "source": {
+        "path": "x86_64/release/grep/grep-3.12-1-src.tar.xz",
+        "size": 1922824,
+        "sha512": "0890bfdbe2ade72d1f9ddccfa3782af054ddbdd8a831446fb01e5e567491910dc64de10ed73668aabfe97ecd255af500ba1d3ee9ec1e8f94131916f93dcd5920"
       }
     }
   }
