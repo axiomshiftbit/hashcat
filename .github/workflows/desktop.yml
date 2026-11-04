@@ -104,7 +104,7 @@ jobs:
           New-Item -ItemType Directory -Force gui/dist/HashcatDesktop/licenses | Out-Null
           Copy-Item docs/license.txt gui/dist/HashcatDesktop/licenses/hashcat-MIT.txt
           Copy-Item "$env:RUNNER_TEMP\qtbase-source-6.10.2.tar.xz" gui/dist/HashcatDesktop/licenses/
-          tar -xf gui/dist/HashcatDesktop/licenses/qtbase-source-6.10.2.tar.xz -C gui/dist/HashcatDesktop/licenses --strip-components=1 qtbase-everywhere-src-6.10.2/LICENSES
+          python gui/tests/package_qt_notices.py gui/dist/HashcatDesktop/licenses/qtbase-source-6.10.2.tar.xz gui/dist/HashcatDesktop/licenses
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item C:/Qt/6.10.2/msvc2022_64/sbom gui/dist/HashcatDesktop/licenses/ -Recurse
           Copy-Item C:/Qt/6.10.2/msvc2022_64/config_qtbase.* gui/dist/HashcatDesktop/licenses/
