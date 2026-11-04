@@ -22,6 +22,8 @@ cmake -S "$work/sources/leveldb" -B "$work/leveldb-build" \
 cmake --build "$work/leveldb-build" -j2
 cmake --install "$work/leveldb-build"
 export BERKELEYDB_DIR=/usr
+# This separate converter component is redistributed with its AGPL source.
+export YES_I_HAVE_THE_RIGHT_TO_USE_THIS_BERKELEY_DB_VERSION=1
 export CFLAGS='-I/usr/local/include'
 export CXXFLAGS='-I/usr/local/include'
 export LDFLAGS='-L/usr/local/lib'

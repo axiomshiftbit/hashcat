@@ -63,6 +63,10 @@ cryptography package is not distributed. Unix manual pages are omitted and runti
 materialized as regular files for Windows Explorer extraction. No system Cygwin,
 WSL, Python or Perl installation is needed. Linux uses user-installed converters.
 
+Berkeley DB 18 and the converter components linking it are redistributed under
+AGPL-3.0 terms. Their complete corresponding sources and notices are included in
+the converter source archives. They run separately from the GUI and Hashcat.
+
 App-local MSVC runtime DLLs come from Visual Studio's redistributable directory
 and retain Microsoft's terms. Qt and converter runtimes can be replaced within the
 application directory.
