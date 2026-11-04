@@ -24,6 +24,8 @@ def main():
         result = subprocess.run([str(arg) for arg in command], env=env, cwd=john,
                                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=40)
         output = result.stdout.decode("utf-8", errors="replace")
+        if 0xC0000000 <= result.returncode & 0xFFFFFFFF < 0xD0000000:
+            raise RuntimeError(str(command[0]) + " crashed: " + hex(result.returncode & 0xFFFFFFFF))
         if success and result.returncode:
             raise RuntimeError(str(command[0]) + "\n" + output)
         for error in ("ModuleNotFoundError", "ImportError:", "Can't locate ", "error while loading shared libraries"):

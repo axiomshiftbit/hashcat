@@ -19,7 +19,7 @@ jobs:
         id: converter-cache
         with:
           path: gui/bundle
-          key: converters-windows-${{ hashFiles('gui/packaging/**', 'gui/third_party/hashcat_reactor/tool_registry.json') }}
+          key: converters-windows-${{ hashFiles('gui/packaging/*.lock.json', 'gui/packaging/*requirements.txt', 'gui/packaging/cygwin_bundle.py', 'gui/packaging/build_converters.sh') }}
       - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
         id: source-cache
         with:

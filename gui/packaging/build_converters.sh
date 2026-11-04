@@ -25,6 +25,8 @@ export BERKELEYDB_DIR=/usr
 export CFLAGS='-I/usr/local/include'
 export CXXFLAGS='-I/usr/local/include'
 export LDFLAGS='-L/usr/local/lib'
+# Cygwin normally populates this bundle through a system post-install hook.
+python3.12 -c 'import pip._vendor.certifi, shutil; shutil.copyfile("/etc/pki/tls/cert.pem", pip._vendor.certifi.where())'
 python3.12 -m pip install --no-index --no-deps --no-build-isolation --require-hashes \
   --find-links "$work/python-packages" \
   --target "$output/tools/cygwin/lib/python3.12/site-packages" \
