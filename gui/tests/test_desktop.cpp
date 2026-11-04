@@ -265,6 +265,8 @@ private slots:
   {
     QTemporaryDir workspace; Window window (workspace.path ());
     QCOMPARE (window.findChild<QComboBox *> ("attack")->count (), 10);
+    Job legacy = job (); legacy.dictionary2 = file ("unused legacy dictionary.txt");
+    window.set_form (legacy); QCOMPARE (window.form_job ().wordlists, QStringList {QDir::toNativeSeparators (legacy.dictionary)});
     Job j = job (); j.attack = 12; j.mask = "?w?q";
     j.wordlists = {file ("first selected.txt", "te\n"), file ("second selected.txt", "st\n")};
     j.advanced = {{"ruleLeft", ":"}, {"skip", "10"}, {"pcfgScale", "4"}};
@@ -276,7 +278,7 @@ private slots:
     list->item (2)->setCheckState (Qt::Unchecked);
     list->setCurrentRow (1); paths->move_selected (-1);
     const Job captured = window.form_job ();
-    QCOMPARE (captured.wordlists, QStringList ({j.wordlists[1], j.wordlists[0]}));
+    QCOMPARE (captured.wordlists, QStringList ({QDir::toNativeSeparators (j.wordlists[1]), QDir::toNativeSeparators (j.wordlists[0])}));
     const Job restored = Job::from_json (captured.json ()); window.set_form (restored);
     QCOMPARE (paths->snapshot (), captured.editor_state["wordlists"].toArray ());
     QCOMPARE (window.form_job ().advanced["pcfgScale"].toString (), QString ("4"));

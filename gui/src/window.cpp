@@ -827,7 +827,7 @@ void Window::set_form (const Job &job)
   if (dictionaries.isEmpty ())
   {
     if (!job.dictionary.isEmpty ()) dictionaries << job.dictionary;
-    if (!job.dictionary2.isEmpty ()) dictionaries << job.dictionary2;
+    if ((job.attack == 1 || job.attack == 12) && !job.dictionary2.isEmpty ()) dictionaries << job.dictionary2;
   }
   get<PathList> ("wordlists")->restore (job.editor_state["wordlists"].toArray (), dictionaries);
   get<AdvancedForm> ("advanced")->set_values (job.advanced);

@@ -32,7 +32,9 @@ jobs:
         run: |
           $env:GUI_SCREENSHOT = "$env:RUNNER_TEMP\desktop-windows.png"
           ctest --test-dir gui/build -C Release --output-on-failure
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $result = $LASTEXITCODE
+          Get-Content gui/build/desktop-results.txt
+          if ($result) { exit $result }
       - name: Hashcat and CPU OpenCL runtime
         shell: pwsh
         run: |
@@ -163,6 +165,7 @@ jobs:
           name: Windows-test-results
           path: |
             gui/build/Testing/Temporary/LastTest.log
+            gui/build/desktop-results.txt
             ${{ runner.temp }}/desktop-windows.png*
             ${{ runner.temp }}/real-windows.txt
             ${{ runner.temp }}/converters-windows.txt
@@ -188,7 +191,8 @@ jobs:
           CAPTURE_FIXTURES: /tmp/desktop-captures
         run: |
           python3 gui/tests/generate_captures.py /tmp/desktop-captures
-          ctest --test-dir gui/build --output-on-failure
+          ctest --test-dir gui/build --output-on-failure || { cat gui/build/desktop-results.txt; exit 1; }
+          cat gui/build/desktop-results.txt
           QT_QPA_PLATFORM=xcb xvfb-run -a gui/build/desktop_tests ui_queue_language_results_and_reload ui_expert_any_arguments
       - name: Hashcat 8 modes and document extraction
         env:
@@ -233,6 +237,7 @@ jobs:
           name: Linux-test-results
           path: |
             gui/build/Testing/Temporary/LastTest.log
+            gui/build/desktop-results.txt
             /tmp/desktop-linux.png*
             /tmp/hashcat8-linux.txt
             /tmp/documents-linux.png*
