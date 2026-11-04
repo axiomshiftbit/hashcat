@@ -17,10 +17,11 @@ cp license.txt "$output/tools/hcxtools/LICENSE.txt"
 cmake -S "$work/sources/leveldb" -B "$work/leveldb-build" \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-D_GNU_SOURCE \
   -DLEVELDB_BUILD_TESTS=OFF -DLEVELDB_BUILD_BENCHMARKS=OFF \
-  -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+  -DBUILD_SHARED_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   -DCMAKE_INSTALL_PREFIX=/usr/local
 cmake --build "$work/leveldb-build" -j2
 cmake --install "$work/leveldb-build"
+cp /usr/local/bin/cygleveldb-*.dll "$output/tools/cygwin/bin/"
 export BERKELEYDB_DIR=/usr
 # This separate converter component is redistributed with its AGPL source.
 export YES_I_HAVE_THE_RIGHT_TO_USE_THIS_BERKELEY_DB_VERSION=1

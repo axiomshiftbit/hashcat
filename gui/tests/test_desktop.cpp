@@ -440,6 +440,13 @@ private slots:
       window.findChild<QTabWidget *> ("converterTabs")->setCurrentIndex (1); QCoreApplication::processEvents ();
       QVERIFY (window.grab ().save (screenshot + "-extract-" + format + ".png"));
     }
+    const QString invalid_output = workspace.filePath ("invalid-document.hashes");
+    window.findChild<QLineEdit *> ("extractInput")->setText (file ("invalid." + format, "not an encrypted document"));
+    window.findChild<QLineEdit *> ("extractOutput")->setText (invalid_output);
+    window.findChild<QPushButton *> ("extractStart")->click ();
+    QTRY_VERIFY_WITH_TIMEOUT (window.findChild<QPushButton *> ("extractStart")->isEnabled (), 30000);
+    QVERIFY (!window.findChild<QPushButton *> ("extractUse")->isEnabled ());
+    QVERIFY (!QFileInfo::exists (invalid_output));
   }
 
   void real_hashcat_dictionary ()
@@ -582,6 +589,14 @@ private slots:
       QVERIFY2 (cracked[0][0].toInt () == 0, qPrintable (engine_log.join ('\n')));
       QFile recovered (j.directory (temp.path ()) + "/results.txt"); QVERIFY (recovered.open (QIODevice::ReadOnly));
       QVERIFY (recovered.readAll ().contains (QByteArray ("gui-fixture-only").toHex ()));
+    }
+    if (input == "synthetic.cap")
+    {
+      request.input = file ("malformed.pcap", "not a capture");
+      request.output = temp.filePath ("malformed-converted.hashes"); done.clear ();
+      QVERIFY (converter.start (request));
+      QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 20000);
+      QVERIFY (!done[0][0].toBool ()); QVERIFY (!QFileInfo::exists (request.output));
     }
   }
 };
