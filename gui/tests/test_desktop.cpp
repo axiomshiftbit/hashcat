@@ -353,10 +353,9 @@ private slots:
     QStringList log;
     connect (&runner, &Runner::line, &runner, [&log] (const QString &line) { log << line; });
     QStringList args = j.arguments (workspace.path ());
-    if (qEnvironmentVariableIsSet ("HASHCAT_TEST_SCALAR")) args << "--backend-vector-width=1";
     QVERIFY (runner.start (binary, args, QFileInfo (binary).absolutePath ()));
     QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 120000);
-    QVERIFY2 (done[0][0].toInt () == 0, qPrintable (log.join ('\n')));
+    QVERIFY2 (done[0][0].toInt () == 0, qPrintable (QString ("Hashcat exit code: %1\n%2").arg (done[0][0].toInt ()).arg (log.join ('\n'))));
     QFile result (j.directory (workspace.path ()) + "/results.txt"); QVERIFY (result.open (QIODevice::ReadOnly));
     QVERIFY (result.readAll ().contains (QByteArray ("gui-fixture-only").toHex ()));
     const QString screenshot = qEnvironmentVariable ("GUI_SCREENSHOT");

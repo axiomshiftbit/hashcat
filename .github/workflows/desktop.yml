@@ -41,17 +41,23 @@ jobs:
           Invoke-WebRequest https://github.com/hashcat/hashcat/releases/download/v8.0.0/hashcat-8.0.0.7z -OutFile "$env:RUNNER_TEMP\hashcat.7z"
           if ((Get-FileHash "$env:RUNNER_TEMP\hashcat.7z").Hash -ne '9fa86e1bfd5dd898d3c83aa38a67b08db1ba5d2f5252dffa2af44a8c62585f49') { throw 'Hashcat digest mismatch' }
           7z x "$env:RUNNER_TEMP\hashcat.7z" "-o$env:RUNNER_TEMP\engine" -y
-          Invoke-WebRequest https://github.com/pocl/pocl/releases/download/v7.0/PoCL-7.0.0-CONF-win64.exe -OutFile "$env:RUNNER_TEMP\pocl.exe"
-          if ((Get-FileHash "$env:RUNNER_TEMP\pocl.exe").Hash -ne '8a00dafdca7426e9166239ec5e419255c53a66d2cf293c339ed69f0848912861') { throw 'PoCL digest mismatch' }
-          $install = Start-Process "$env:RUNNER_TEMP\pocl.exe" -ArgumentList '/S' -PassThru -Wait
-          if ($install.ExitCode -ne 0) { throw "PoCL install failed: $($install.ExitCode)" }
+          python -m venv "$env:RUNNER_TEMP\intel-opencl"
+          & "$env:RUNNER_TEMP\intel-opencl\Scripts\python.exe" -m pip install --require-hashes -r gui/tests/windows-opencl-requirements.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $runtime = "$env:RUNNER_TEMP\intel-opencl\Library\bin"
+          if (-not (Test-Path "$runtime\intelocl64.dll")) { throw 'Intel OpenCL runtime missing' }
+          (Get-Content "$runtime\cl.cfg") -replace '^CL_CONFIG_TBB_DLL_PATH =.*', "CL_CONFIG_TBB_DLL_PATH = $runtime" | Set-Content "$runtime\cl.cfg"
+          New-Item -Path HKLM:\SOFTWARE\Khronos\OpenCL\Vendors -Force | Out-Null
+          New-ItemProperty -Path HKLM:\SOFTWARE\Khronos\OpenCL\Vendors -Name "$runtime\intelocl64.dll" -Value 0 -PropertyType DWord -Force | Out-Null
+          $runtime >> $env:GITHUB_PATH
+          'CL_CONFIG_CPU_TBB_NUM_WORKERS=2' >> $env:GITHUB_ENV
+          $env:PATH = "$runtime;$env:PATH"
+          & "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe" --backend-info
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Real Hashcat integration
         shell: pwsh
         run: |
-          . ./gui/tests/windows_opencl_env.ps1
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
-          $env:POCL_MAX_PTHREAD_COUNT = '2'
-          $env:POCL_CPU_MAX_CU_COUNT = '2'
           & gui/build/Release/desktop_tests.exe real_hashcat_dictionary real_controls_and_restore -o "$env:RUNNER_TEMP\real-windows.txt,txt"
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\real-windows.txt"
@@ -59,7 +65,6 @@ jobs:
       - name: Document extraction integration
         shell: pwsh
         run: |
-          . ./gui/tests/windows_opencl_env.ps1
           python -m pip install pypdf==6.21.4 pyhanko==0.38.1 msoffcrypto-tool==6.1.0 python-docx==1.2.0
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:JOHN_RUN = "$env:RUNNER_TEMP\john-tools"
@@ -77,10 +82,7 @@ jobs:
           python gui/tests/generate_documents.py $env:DOCUMENT_FIXTURES
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
-          $env:POCL_MAX_PTHREAD_COUNT = '2'
           $env:GUI_SCREENSHOT = "$env:RUNNER_TEMP\documents-windows.png"
-          $env:POCL_CPU_MAX_CU_COUNT = '2'
-          $env:HASHCAT_TEST_SCALAR = '1'
           & gui/build/Release/desktop_tests.exe real_document_extraction -o "$env:RUNNER_TEMP\documents-windows.txt,txt"
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\documents-windows.txt"
@@ -88,7 +90,6 @@ jobs:
       - name: WSL capture conversion
         shell: pwsh
         run: |
-          . ./gui/tests/windows_opencl_env.ps1
           $base = 'https://cdimages.ubuntu.com/ubuntu-wsl/noble/daily-live/current'
           Invoke-WebRequest "$base/noble-wsl-amd64.wsl" -OutFile "$env:RUNNER_TEMP\ubuntu.wsl"
           Invoke-WebRequest "$base/SHA256SUMS" -OutFile "$env:RUNNER_TEMP\ubuntu-checksums.txt"
@@ -108,7 +109,6 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:HCX_WSL = '1'
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
-          $env:POCL_MAX_PTHREAD_COUNT = '2'
           & gui/build/Release/desktop_tests.exe real_converter ui_converter_to_task -o "$env:RUNNER_TEMP\converters-windows.txt,txt"
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\converters-windows.txt"

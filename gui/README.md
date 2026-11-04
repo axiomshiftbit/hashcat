@@ -93,7 +93,7 @@ fixture. Fixture tests do not establish GPU-driver compatibility.
 
 The manual GitHub Actions workflow `Desktop GUI` builds both platforms, tests them,
 and produces downloadable packages. Its Windows integration installs the official
-PoCL CPU runtime. A dedicated GPU remains necessary for vendor-specific validation.
+Intel CPU OpenCL runtime. A dedicated GPU remains necessary for vendor-specific validation.
 
 ## License
 
