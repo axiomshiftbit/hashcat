@@ -62,16 +62,23 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:JOHN_RUN = "$env:RUNNER_TEMP\john-tools"
           New-Item -ItemType Directory -Force $env:JOHN_RUN | Out-Null
-          foreach ($tool in @('pdf2john.py', 'office2john.py')) {
+          foreach ($tool in @('pdf2john.py', 'office2john.py', '7z2john.pl')) {
             Invoke-WebRequest "https://raw.githubusercontent.com/openwall/john/5184bc0b8c105f8c5978b112e723d65b2de3e63e/run/$tool" -OutFile "$env:JOHN_RUN\$tool"
           }
           $env:DOCUMENT_FIXTURES = "$env:RUNNER_TEMP\document fixtures"
           $env:TEST_PYTHON = (Get-Command python).Source
+          $perl = Get-Command perl -ErrorAction SilentlyContinue
+          if ($perl) {
+            & $perl.Source -MCompress::Raw::Lzma -e 1 2>$null
+            if ($LASTEXITCODE -eq 0) { $env:TEST_PERL = $perl.Source }
+          }
           python gui/tests/generate_documents.py $env:DOCUMENT_FIXTURES
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
           $env:POCL_MAX_PTHREAD_COUNT = '2'
           $env:GUI_SCREENSHOT = "$env:RUNNER_TEMP\documents-windows.png"
+          $env:POCL_CPU_MAX_CU_COUNT = '2'
+          $env:HASHCAT_TEST_SCALAR = '1'
           & gui/build/Release/desktop_tests.exe real_document_extraction -o "$env:RUNNER_TEMP\documents-windows.txt,txt"
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\documents-windows.txt"

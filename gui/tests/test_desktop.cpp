@@ -330,6 +330,9 @@ private slots:
     if (format == "7z" && perl.isEmpty ()) QSKIP ("7z integration requires Perl with Compress::Raw::Lzma");
     QTemporaryDir workspace; Window window (workspace.path ()); window.show ();
     window.findChild<QLineEdit *> ("binary")->setText (binary);
+    auto *kind = window.findChild<QComboBox *> ("extractKind");
+    kind->setCurrentIndex (kind->findData (format == "docx" ? "office" : format));
+    window.findChild<QLineEdit *> ("johnDirectory")->setText (john);
     window.findChild<QLineEdit *> ("extractTool")->setText (QDir (john).filePath (format == "pdf" ? "pdf2john.py" : format == "7z" ? "7z2john.pl" : "office2john.py"));
     window.findChild<QLineEdit *> ("extractInterpreter")->setText (format == "7z" ? perl : python);
     window.findChild<QLineEdit *> ("extractInput")->setText (QDir (fixtures).filePath ("synthetic." + format));
@@ -347,8 +350,13 @@ private slots:
     j.dictionary = QDir (fixtures).filePath ("dictionary.txt"); j.device_type = 1; j.workload = 1; j.force = true;
     QVERIFY (QDir ().mkpath (j.directory (workspace.path ())));
     Runner runner; QSignalSpy done (&runner, &Runner::finished);
-    QVERIFY (runner.start (binary, j.arguments (workspace.path ()), QFileInfo (binary).absolutePath ()));
-    QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 120000); QCOMPARE (done[0][0].toInt (), 0);
+    QStringList log;
+    connect (&runner, &Runner::line, &runner, [&log] (const QString &line) { log << line; });
+    QStringList args = j.arguments (workspace.path ());
+    if (qEnvironmentVariableIsSet ("HASHCAT_TEST_SCALAR")) args << "--backend-vector-width=1";
+    QVERIFY (runner.start (binary, args, QFileInfo (binary).absolutePath ()));
+    QTRY_COMPARE_WITH_TIMEOUT (done.size (), 1, 120000);
+    QVERIFY2 (done[0][0].toInt () == 0, qPrintable (log.join ('\n')));
     QFile result (j.directory (workspace.path ()) + "/results.txt"); QVERIFY (result.open (QIODevice::ReadOnly));
     QVERIFY (result.readAll ().contains (QByteArray ("gui-fixture-only").toHex ()));
     const QString screenshot = qEnvironmentVariable ("GUI_SCREENSHOT");
