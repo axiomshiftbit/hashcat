@@ -25,6 +25,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/converters/downloads
           key: converter-sources-${{ hashFiles('gui/packaging/*.lock.json') }}
+          restore-keys: converter-sources-
       - name: Prepare locked converter sources and runtimes
         if: steps.converter-cache.outputs.cache-hit != 'true'
         shell: pwsh
