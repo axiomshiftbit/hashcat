@@ -41,13 +41,14 @@ jobs:
           Invoke-WebRequest https://github.com/hashcat/hashcat/releases/download/v8.0.0/hashcat-8.0.0.7z -OutFile "$env:RUNNER_TEMP\hashcat.7z"
           if ((Get-FileHash "$env:RUNNER_TEMP\hashcat.7z").Hash -ne '9fa86e1bfd5dd898d3c83aa38a67b08db1ba5d2f5252dffa2af44a8c62585f49') { throw 'Hashcat digest mismatch' }
           7z x "$env:RUNNER_TEMP\hashcat.7z" "-o$env:RUNNER_TEMP\engine" -y
-          Invoke-WebRequest https://github.com/pocl/pocl/releases/download/v7.2/PoCL-7.2.0-win64.exe -OutFile "$env:RUNNER_TEMP\pocl.exe"
-          if ((Get-FileHash "$env:RUNNER_TEMP\pocl.exe").Hash -ne '474e4321728c022132b872ea7b4c1158756f3344ffd703adb8b0f9b5cde37593') { throw 'PoCL digest mismatch' }
+          Invoke-WebRequest https://github.com/pocl/pocl/releases/download/v7.0/PoCL-7.0.0-CONF-win64.exe -OutFile "$env:RUNNER_TEMP\pocl.exe"
+          if ((Get-FileHash "$env:RUNNER_TEMP\pocl.exe").Hash -ne '8a00dafdca7426e9166239ec5e419255c53a66d2cf293c339ed69f0848912861') { throw 'PoCL digest mismatch' }
           $install = Start-Process "$env:RUNNER_TEMP\pocl.exe" -ArgumentList '/S' -PassThru -Wait
           if ($install.ExitCode -ne 0) { throw "PoCL install failed: $($install.ExitCode)" }
       - name: Real Hashcat integration
         shell: pwsh
         run: |
+          . ./gui/tests/windows_opencl_env.ps1
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
           $env:POCL_MAX_PTHREAD_COUNT = '2'
           $env:POCL_CPU_MAX_CU_COUNT = '2'
@@ -58,6 +59,7 @@ jobs:
       - name: Document extraction integration
         shell: pwsh
         run: |
+          . ./gui/tests/windows_opencl_env.ps1
           python -m pip install pypdf==6.21.4 pyhanko==0.38.1 msoffcrypto-tool==6.1.0 python-docx==1.2.0
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:JOHN_RUN = "$env:RUNNER_TEMP\john-tools"
@@ -86,6 +88,7 @@ jobs:
       - name: WSL capture conversion
         shell: pwsh
         run: |
+          . ./gui/tests/windows_opencl_env.ps1
           $base = 'https://cdimages.ubuntu.com/ubuntu-wsl/noble/daily-live/current'
           Invoke-WebRequest "$base/noble-wsl-amd64.wsl" -OutFile "$env:RUNNER_TEMP\ubuntu.wsl"
           Invoke-WebRequest "$base/SHA256SUMS" -OutFile "$env:RUNNER_TEMP\ubuntu-checksums.txt"
