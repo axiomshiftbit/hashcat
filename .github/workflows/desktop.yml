@@ -76,7 +76,7 @@ jobs:
           $env:HCX_WSL = '1'
           $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
           $env:POCL_MAX_PTHREAD_COUNT = '2'
-          & gui/build/Release/desktop_tests.exe real_converter -o "$env:RUNNER_TEMP\converters-windows.txt,txt"
+          & gui/build/Release/desktop_tests.exe real_converter ui_converter_to_task -o "$env:RUNNER_TEMP\converters-windows.txt,txt"
           $result = $LASTEXITCODE
           Get-Content "$env:RUNNER_TEMP\converters-windows.txt"
           if ($result) { exit $result }
@@ -97,6 +97,14 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item C:/Qt/6.10.2/msvc2022_64/sbom gui/dist/HashcatDesktop/licenses/ -Recurse
           Copy-Item C:/Qt/6.10.2/msvc2022_64/config_qtbase.* gui/dist/HashcatDesktop/licenses/
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notlike 'C:\Qt\*' }) -join ';'
+          $app = Start-Process gui/dist/HashcatDesktop/hashcat-desktop.exe -ArgumentList '--data-dir', "$env:RUNNER_TEMP\package-smoke" -PassThru
+          try {
+            Start-Sleep -Seconds 3
+            if ($app.HasExited) { throw "Packaged application exited: $($app.ExitCode)" }
+          } finally {
+            if (-not $app.HasExited) { Stop-Process -Id $app.Id }
+          }
           Compress-Archive gui/dist/HashcatDesktop gui/dist/HashcatDesktop-Windows-x64.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:

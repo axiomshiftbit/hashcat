@@ -9,6 +9,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QListWidget>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QPlainTextEdit>
 #include <QTableWidget>
@@ -214,6 +215,35 @@ private slots:
     QTest::mouseClick (window.findChild<QPushButton *> ("expertRun"), Qt::LeftButton);
     QTRY_VERIFY_WITH_TIMEOUT (window.findChild<QPlainTextEdit *> ("consoleOutput")->toPlainText ().contains ("--future-option=anything"), 10000);
     QTRY_VERIFY (window.engine ()->busy () == false);
+    const QByteArray input = "synthetic standard input with spaces\nsecond line\n";
+    window.findChild<QLineEdit *> ("stdinFile")->setText (file ("input with spaces.txt", input));
+    window.findChild<QPlainTextEdit *> ("arguments")->setPlainText ("--fixture-stdin");
+    QTest::mouseClick (window.findChild<QPushButton *> ("expertRun"), Qt::LeftButton);
+    QTRY_VERIFY_WITH_TIMEOUT (window.findChild<QPlainTextEdit *> ("consoleOutput")->toPlainText ().contains (QString::fromLatin1 (input.toBase64 ())), 10000);
+    QTRY_VERIFY (window.engine ()->busy () == false);
+  }
+
+  void ui_converter_to_task ()
+  {
+    const QString fixtures = qEnvironmentVariable ("CAPTURE_FIXTURES");
+    if (fixtures.isEmpty ()) QSKIP ("CAPTURE_FIXTURES not supplied");
+    QTemporaryDir workspace; Window window (workspace.path ()); window.show ();
+    auto *nav = window.findChild<QListWidget *> ("navigation"); nav->setCurrentRow (3);
+    const QString output = workspace.filePath ("converted hashes.txt");
+    window.findChild<QLineEdit *> ("conversionInput")->setText (QDir (fixtures).filePath ("synthetic.pcapng"));
+    window.findChild<QLineEdit *> ("conversionOutput")->setText (output);
+    window.findChild<QLineEdit *> ("hcxDirectory")->setText (qEnvironmentVariable ("HCX_DIRECTORY"));
+    window.findChild<QCheckBox *> ("useWsl")->setChecked (qEnvironmentVariableIsSet ("HCX_WSL"));
+    QTest::mouseClick (window.findChild<QPushButton *> ("convert"), Qt::LeftButton);
+    // Changing the form must not alter the mode of the in-flight conversion.
+    window.findChild<QComboBox *> ("conversionMode")->setCurrentIndex (1);
+    auto *use = window.findChild<QPushButton *> ("useConversion");
+    QTRY_VERIFY2_WITH_TIMEOUT (use->isEnabled (), qPrintable (window.findChild<QPlainTextEdit *> ("conversionLog")->toPlainText ()), 30000);
+    QTest::mouseClick (use, Qt::LeftButton);
+    QCOMPARE (nav->currentRow (), 1);
+    QCOMPARE (window.form_job ().hashes, output);
+    QCOMPARE (window.form_job ().hash_mode, 22000);
+    QVERIFY (QFileInfo (output).size () > 0);
   }
 
   void real_hashcat_dictionary_data ()

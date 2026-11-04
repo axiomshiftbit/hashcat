@@ -28,6 +28,13 @@ int main (int argc, char **argv)
     puts (QJsonDocument (QJsonArray::fromStringList (args.mid (1))).toJson (QJsonDocument::Compact).constData ());
     return 0;
   }
+  if (args.contains ("--fixture-stdin"))
+  {
+    QFile input;
+    if (input.open (stdin, QIODevice::ReadOnly) == false) return 1;
+    puts (input.readAll ().toBase64 ().constData ());
+    return 0;
+  }
   const bool wait = args.contains ("--fixture-wait");
   const bool failure = args.contains ("--fixture-failure");
   const bool exhausted = args.contains ("--fixture-exhausted");
