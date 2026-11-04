@@ -1,0 +1,112 @@
+name: Desktop GUI
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Qt
+        shell: pwsh
+        run: |
+          python -m pip install aqtinstall==3.3.0
+          python -m aqt install-qt windows desktop 6.10.2 win64_msvc2022_64 --archives qtbase -O C:\Qt
+          "C:\Qt\6.10.2\msvc2022_64\bin" >> $env:GITHUB_PATH
+      - name: Build
+        shell: pwsh
+        run: |
+          cmake -S gui -B gui/build -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/6.10.2/msvc2022_64
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build gui/build --config Release --parallel 2
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Synthetic GUI and process tests
+        shell: pwsh
+        run: |
+          $env:GUI_SCREENSHOT = "$env:RUNNER_TEMP\desktop-windows.png"
+          ctest --test-dir gui/build -C Release --output-on-failure
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Hashcat and CPU OpenCL runtime
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/hashcat/hashcat/releases/download/v8.0.0/hashcat-8.0.0.7z -OutFile "$env:RUNNER_TEMP\hashcat.7z"
+          if ((Get-FileHash "$env:RUNNER_TEMP\hashcat.7z").Hash -ne '9fa86e1bfd5dd898d3c83aa38a67b08db1ba5d2f5252dffa2af44a8c62585f49') { throw 'Hashcat digest mismatch' }
+          7z x "$env:RUNNER_TEMP\hashcat.7z" "-o$env:RUNNER_TEMP\engine" -y
+          Invoke-WebRequest https://github.com/pocl/pocl/releases/download/v7.2/PoCL-7.2.0-win64.exe -OutFile "$env:RUNNER_TEMP\pocl.exe"
+          if ((Get-FileHash "$env:RUNNER_TEMP\pocl.exe").Hash -ne '474e4321728c022132b872ea7b4c1158756f3344ffd703adb8b0f9b5cde37593') { throw 'PoCL digest mismatch' }
+          $install = Start-Process "$env:RUNNER_TEMP\pocl.exe" -ArgumentList '/S' -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "PoCL install failed: $($install.ExitCode)" }
+      - name: Real Hashcat integration
+        shell: pwsh
+        run: |
+          $env:REAL_HASHCAT = "$env:RUNNER_TEMP\engine\hashcat-8.0.0\hashcat.exe"
+          $env:POCL_MAX_PTHREAD_COUNT = '2'
+          $env:POCL_CPU_MAX_CU_COUNT = '2'
+          & gui/build/Release/desktop_tests.exe real_hashcat_dictionary
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force gui/dist/HashcatDesktop | Out-Null
+          Copy-Item gui/build/Release/hashcat-desktop.exe gui/dist/HashcatDesktop/
+          windeployqt --release --no-translations --no-opengl-sw gui/dist/HashcatDesktop/hashcat-desktop.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item "$env:RUNNER_TEMP\engine\hashcat-8.0.0" gui/dist/HashcatDesktop/hashcat -Recurse
+          Copy-Item gui/README.md gui/dist/HashcatDesktop/
+          New-Item -ItemType Directory -Force gui/dist/HashcatDesktop/licenses | Out-Null
+          Copy-Item docs/license.txt gui/dist/HashcatDesktop/licenses/hashcat-MIT.txt
+          if (Test-Path C:/Qt/6.10.2/msvc2022_64/licenses) { Copy-Item C:/Qt/6.10.2/msvc2022_64/licenses/* gui/dist/HashcatDesktop/licenses/ -Recurse }
+          Compress-Archive gui/dist/HashcatDesktop gui/dist/HashcatDesktop-Windows-x64.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: HashcatDesktop-Windows-x64
+          path: gui/dist/HashcatDesktop-Windows-x64.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Windows-test-results
+          path: |
+            gui/build/Testing/Temporary/LastTest.log
+            ${{ runner.temp }}/desktop-windows.png
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-base-dev ninja-build hashcat pocl-opencl-icd hcxtools xvfb xauth
+      - name: Build
+        run: cmake -S gui -B gui/build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build gui/build -j2
+      - name: Test
+        env:
+          REAL_HASHCAT: /usr/bin/hashcat
+          POCL_MAX_PTHREAD_COUNT: '2'
+          POCL_CPU_MAX_CU_COUNT: '2'
+          GUI_SCREENSHOT: /tmp/desktop-linux.png
+        run: ctest --test-dir gui/build --output-on-failure
+      - name: Package
+        run: |
+          mkdir -p gui/dist/HashcatDesktop
+          cp gui/build/hashcat-desktop gui/README.md gui/dist/HashcatDesktop/
+          tar -czf gui/dist/HashcatDesktop-Linux-x64.tar.gz -C gui/dist HashcatDesktop
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: HashcatDesktop-Linux-x64
+          path: gui/dist/HashcatDesktop-Linux-x64.tar.gz
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Linux-test-results
+          path: |
+            gui/build/Testing/Temporary/LastTest.log
+            /tmp/desktop-linux.png
