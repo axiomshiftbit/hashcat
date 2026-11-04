@@ -86,7 +86,8 @@ jobs:
           curl.exe --fail --location --silent --show-error --retry 2 --max-time 180 https://master.qt.io/archive/qt/6.10/6.10.2/submodules/qtbase-everywhere-src-6.10.2.tar.xz --output "$env:RUNNER_TEMP\qtbase-source-6.10.2.tar.xz"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           if ((Get-FileHash "$env:RUNNER_TEMP\qtbase-source-6.10.2.tar.xz").Hash -ne 'aeb78d29291a2b5fd53cb55950f8f5065b4978c25fb1d77f627d695ab9adf21e') { throw 'Qt source digest mismatch' }
-      - name: Package
+      - name: Deploy Windows runtime
+        timeout-minutes: 5
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force gui/dist/HashcatDesktop | Out-Null
@@ -94,7 +95,12 @@ jobs:
           windeployqt --release --no-translations --no-opengl-sw --no-compiler-runtime gui/dist/HashcatDesktop/hashcat-desktop.exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item "$env:RUNNER_TEMP\engine\hashcat-8.0.0" gui/dist/HashcatDesktop/hashcat -Recurse
+          if (Test-Path gui/dist/HashcatDesktop/hashcat/cache) { Remove-Item gui/dist/HashcatDesktop/hashcat/cache -Recurse -Force }
           Copy-Item gui/README*.md gui/dist/HashcatDesktop/
+      - name: Include Qt sources and notices
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
           New-Item -ItemType Directory -Force gui/dist/HashcatDesktop/licenses | Out-Null
           Copy-Item docs/license.txt gui/dist/HashcatDesktop/licenses/hashcat-MIT.txt
           Copy-Item "$env:RUNNER_TEMP\qtbase-source-6.10.2.tar.xz" gui/dist/HashcatDesktop/licenses/
@@ -102,6 +108,10 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item C:/Qt/6.10.2/msvc2022_64/sbom gui/dist/HashcatDesktop/licenses/ -Recurse
           Copy-Item C:/Qt/6.10.2/msvc2022_64/config_qtbase.* gui/dist/HashcatDesktop/licenses/
+      - name: Packaged Windows startup
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
           $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notlike 'C:\Qt\*' }) -join ';'
           $app = Start-Process gui/dist/HashcatDesktop/hashcat-desktop.exe -ArgumentList '--data-dir', "$env:RUNNER_TEMP\package-smoke" -PassThru
           try {
@@ -110,7 +120,13 @@ jobs:
           } finally {
             if (-not $app.HasExited) { Stop-Process -Id $app.Id }
           }
-          Compress-Archive gui/dist/HashcatDesktop gui/dist/HashcatDesktop-Windows-x64.zip
+      - name: Archive Windows package
+        timeout-minutes: 3
+        shell: pwsh
+        working-directory: gui/dist
+        run: |
+          7z a -tzip -mx=5 -mmt=2 HashcatDesktop-Windows-x64.zip HashcatDesktop
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: HashcatDesktop-Windows-x64
