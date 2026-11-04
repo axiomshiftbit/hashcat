@@ -14,7 +14,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         id: converter-cache
         with:
