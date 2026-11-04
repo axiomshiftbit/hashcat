@@ -19,6 +19,22 @@ QString bundled_interpreter (const QString &suffix, const QString &tool)
   return {};
 }
 
+QString tool_input_path (const QString &program, const QString &path)
+{
+#ifdef Q_OS_WIN
+  if (!program.isEmpty () && (program == bundled_interpreter ("py") || program == bundled_interpreter ("pl")))
+  {
+    const QString normalized = QDir::fromNativeSeparators (path);
+    if (normalized.size () >= 3 && normalized[1] == ':' && normalized[2] == '/')
+      return "/cygdrive/" + normalized.left (1).toLower () + normalized.mid (2);
+    return normalized;
+  }
+#else
+  Q_UNUSED (program);
+#endif
+  return path;
+}
+
 QProcessEnvironment tool_environment (const QString &program)
 {
   QProcessEnvironment environment = QProcessEnvironment::systemEnvironment ();

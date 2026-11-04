@@ -34,7 +34,7 @@ def main():
             failures.append(str(command[0]) + " crashed: " + hex(result.returncode & 0xFFFFFFFF))
         if success and result.returncode:
             failures.append(str(command[0]) + " (" + str(command[-1]) + ")\n" + output)
-        for error in ("ModuleNotFoundError", "ImportError:", "Can't locate ", "error while loading shared libraries"):
+        for error in ("ModuleNotFoundError", "ImportError:", "Can't locate ", "can't open file", "SyntaxError:", "error while loading shared libraries"):
             if error in output:
                 failures.append(str(command[0]) + " (" + str(command[-1]) + ")\n" + output)
         return output
@@ -64,7 +64,11 @@ def main():
             continue
         command = [tool]
         if tool.suffix in (".py", ".pl"):
-            command = ([pdf_python, "-X", "utf8"] if key in ("pdf", "krb") else [python if tool.suffix == ".py" else perl]) + command
+            if key in ("pdf", "krb"):
+                command = [pdf_python, "-X", "utf8", tool]
+            else:
+                posix = "/cygdrive/" + tool.drive[0].lower() + tool.as_posix()[2:]
+                command = [python if tool.suffix == ".py" else perl, posix]
         run(command, success=False)
         resolved[key] = tool.name
     if failures:

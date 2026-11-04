@@ -127,9 +127,10 @@ bool Extractor::start (const Extraction &request)
     if (program.isEmpty ()) program = QStandardPaths::findExecutable (suffix == "pl" ? "perl" : "python3");
     if (program.isEmpty () && suffix == "py") program = QStandardPaths::findExecutable ("python");
     if (program.isEmpty ()) { emit log (t ("Install/select the Python or Perl interpreter required by this tool.", "Установите/выберите нужный конвертеру Python или Perl.")); return false; }
+    args[0] = tool_input_path (program, args[0]);
     if (program == bundled_tool ("python/python.exe")) args = QStringList {"-X", "utf8"} + args;
   }
-  args << config.input;
+  args << tool_input_path (program, config.input);
   buffer.clear (); hashes.clear (); active = true; canceled = false; identifying = false;
   process.setWorkingDirectory (QFileInfo (config.tool).absolutePath ());
   process.setProcessEnvironment (tool_environment (program));
